@@ -3,22 +3,23 @@
 </div>
 
 # About
-zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can upload, download, create, rename, copy, move and search files/folders.
+zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can upload, download, create, rename, copy, move and search files/folders. This is a vibe-coded project.
+
 #### Currently supported platforms:
-+ Linux
-+ Windows 11
-+ MacOS
++ Linux - tested with Python 3.14.
++ Windows 11*
++ MacOS*
 
 # Getting zgSFTP
 
 #### Windows:
-+ Install Python (minimum required version: python3.6.3 for 10/7 and python3.4.0 for XP), download the [.zip](https://github.com/unloaded-nodule215/zgSFTP/releases/download/v5.0/zgSFTP_5.0_windows.zip) file and extract it. Run `install_dependencies.py` script to install dependencies. Now you can run `zgSFTP.pyw` to launch the application.
++ Coming soon. If you have python installed already, install the dependencies and try: `python zgSFTP.py` and see.
 
 #### MacOS:
-+ Not released yet. Use `git clone` or 'download zip', Install Python (minimum required version: python3.6.3). Run `install_dependencies.py` script to install dependencies. Now you can run `zgSFTP.py` to launch the application.
++ Maybe. Will be tested later. If you have a Mac you can test it by installing the dependencies and running: `python zgSFTP.py` and see.
 
 #### Linux:
-+ Install Python (minimum required version: python3.6.3), download the [.zip](https://github.com/unloaded-nodule215/zgSFTP/releases/download/v5.0/zgSFTP_5.0_linux.zip) file and extract it. Run `install_dependencies.py` script to install dependencies. Now you can run `zgSFTP.py` to launch the application.
++ Clone the repo, install the dependencies and run `python zgSFTP.py` to launch the application. Tested with Python 3.14.
 
 # Controls
 + ![](https://raw.githubusercontent.com/unloaded-nodule215/zgSFTP/master/Icons/connect_big.png)
@@ -54,6 +55,7 @@ zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can up
 # Bugs
 + Application looks blurry when DPI scaling is enabled.
 + Search on the root directory does not work.
++ Vibe coded AI slop :)
 
 # Note
-This project is currently being rewritten in wxpython.
+This project was forked from: https://github.com/RainingComputers/whipFTP as a way to test local vibe-coding with Qwen models and OpenCode.
