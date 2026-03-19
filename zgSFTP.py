@@ -11,6 +11,7 @@ import os
 from os.path import isfile, join
 import threading
 import queue
+import configparser
 from tkinter import *
 from tkinter import font
 from tkinter import ttk
@@ -23,6 +24,44 @@ import zgSFTP_FileDialogs as Filedialogs
 import platform
 if(platform.system() == 'Windows'):
     import ctypes
+
+
+def rot13(text):
+    result = ''
+    for char in text:
+        if 'a' <= char <= 'z':
+            result += chr((ord(char) - ord('a') + 13) % 26 + ord('a'))
+        elif 'A' <= char <= 'Z':
+            result += chr((ord(char) - ord('A') + 13) % 26 + ord('A'))
+        else:
+            result += char
+    return result
+
+
+def save_session(host, username, password, port):
+    config = configparser.ConfigParser()
+    config['Connection'] = {
+        'host': host,
+        'username': username,
+        'password': rot13(password),
+        'port': str(port)
+    }
+    with open('last-session.ini', 'w') as configfile:
+        config.write(configfile)
+
+
+def load_session():
+    if isfile('last-session.ini'):
+        config = configparser.ConfigParser()
+        config.read('last-session.ini')
+        if 'Connection' in config:
+            return {
+                'host': config['Connection'].get('host', ''),
+                'username': config['Connection'].get('username', ''),
+                'password': rot13(config['Connection'].get('password', '')),
+                'port': config['Connection'].get('port', '22')
+            }
+    return None
 
 
 class app:
@@ -225,6 +264,10 @@ class app:
         #Create the paste button
         self.paste_button = ToolbarButton.Button(self.toolbar, image = self.paste_icon, image_hover = self.paste_glow_icon, command = self.clipboard_paste_thread_create)
         self.paste_button.pack(side = 'left', padx = 5)
+        #Create remember settings checkbox
+        self.remember_settings = BooleanVar(value = False)
+        self.remember_checkbox = ttk.Checkbutton(self.toolbar, text = 'Remember settings', variable = self.remember_settings)
+        self.remember_checkbox.pack(side = 'left', padx = 5)
         #Create label field for hostname
         self.label_hostname = ttk.Label(self.entry_bar, text = 'Host:')
         self.label_hostname.pack(side = 'left', padx = 2)
@@ -252,6 +295,8 @@ class app:
         self.port_entry = ttk.Entry(self.entry_bar, width = 4)
         self.port_entry.pack(side = 'left', padx = (0, 2))
         self.port_entry.insert(END, '22')
+        #Load saved session if exists
+        self.load_saved_session()
         #Create scrollbar
         self.vbar = ttk.Scrollbar(self.canvas_frame, orient=VERTICAL, style = 'Vertical.TScrollbar')
         self.vbar.pack(anchor = E,side=RIGHT,fill=Y)
@@ -307,6 +352,7 @@ class app:
         self.cut_button.bind('<Motion>', lambda event, arg = 'Cut.': self.update_status(event, arg)) 
         self.copy_button.bind('<Motion>', lambda event, arg = 'Copy.': self.update_status(event, arg)) 
         self.paste_button.bind('<Motion>', lambda event, arg = 'Paste.': self.update_status(event, arg)) 
+        self.remember_checkbox.bind('<Motion>', lambda event, arg = 'Check to save connection settings.': self.update_status(event, arg))
         self.search_button.bind('<Motion>', lambda event, arg = 'Find.': self.update_status(event, arg))
         self.goto_button.bind('<Motion>', lambda event, arg = 'Goto.': self.update_status(event, arg)) 
         self.up_button.bind('<Motion>', lambda event, arg = 'Go to parent directory.': self.update_status(event, arg)) 
@@ -336,7 +382,23 @@ class app:
         self.port_entry.delete(0, 'end') 
         self.port_entry.insert(END, '22')
 
+    def load_saved_session(self):
+        session = load_session()
+        if session:
+            self.hostname_entry.insert(0, session['host'])
+            self.usrname_entry.insert(0, session['username'])
+            self.pass_entry.insert(0, session['password'])
+            self.port_entry.delete(0, END)
+            self.port_entry.insert(0, session['port'])
 
+    def save_current_session(self):
+        if self.remember_settings.get() == True:
+            save_session(
+                self.hostname_entry.get(),
+                self.usrname_entry.get(),
+                self.pass_entry.get(),
+                self.port_entry.get()
+            )
 
     def connect_to_ftp(self, event = None):        
         #Show wait animation
@@ -365,6 +427,7 @@ class app:
             thread_request_queue.put(lambda:self.unlock_status_bar())
             thread_request_queue.put(lambda:self.cont_wait())         
             thread_request_queue.put(lambda:self.update_file_list())
+            thread_request_queue.put(lambda:self.save_current_session())
             thread_request_queue.put(lambda:self.update_status(message = 'Connected.'))
         except Exception:
             thread_request_queue.put(lambda:self.unlock_status_bar())
