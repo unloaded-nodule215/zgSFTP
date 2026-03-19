@@ -370,6 +370,9 @@ class console_dialog:
         #Transfer cancelled flag
         self.transfer_cancelled = False
 
+        #Suppress percentage display flag
+        self.suppress_percentage = False
+
         #Create a new dialog box window
         self.console_dialog_window = Toplevel(master)
         #Make it non-resizeble, set title
@@ -446,6 +449,7 @@ class console_dialog:
             self.vbar.config(style = 'TScrollbar')
 
     def insert_error(self, line):
+        self.console_text.insert('end', '\n', 'error')
         self.console_text.insert('end', line+'\n', 'error')
         self.console_text.see('end')
         if(int(self.console_text.index('end').split('.')[0]) == 26):
@@ -474,6 +478,7 @@ class console_dialog:
 
         result = messagebox.askyesno('Stop Transfer', 'Are you sure you wish to interrupt the transfer?')
         if result == True:
+            self.suppress_percentage = True
             self.transfer_cancelled = True
             if self.stop_callback is not None:
                 self.stop_callback(self.current_file, self.transfer_type)

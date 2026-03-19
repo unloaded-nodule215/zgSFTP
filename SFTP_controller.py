@@ -187,7 +187,8 @@ class sftp_controller:
         def upload_progress(transferred, remaining):
             if self.cancel_transfer == True:
                 raise Exception('Transfer cancelled')
-            status_command(file_name, str(min(round((transferred/file_size) * 100, 8), 100))+'%')
+            if self.cancel_transfer == False:
+                status_command(file_name, str(min(round((transferred/file_size) * 100, 2), 100))+'%')
         #Check if the file is already present in ftp server
         if(self.is_there(file_name)):
             if(replace_command(file_name, 'File exists in destination folder') == False):
@@ -199,6 +200,7 @@ class sftp_controller:
             status_command(None, 'newline')
         except Exception as e:
             if 'Transfer cancelled' in str(e):
+                status_command(None, 'newline')
                 status_command(file_name, 'Upload cancelled')
             else:
                 status_command(file_name, 'Upload failed')
@@ -236,7 +238,8 @@ class sftp_controller:
         def download_progress(transferred, remaining):
             if self.cancel_transfer == True:
                 raise Exception('Transfer cancelled')
-            status_command(ftp_file_name, str(min(round((transferred/file_size) * 100, 8), 100))+'%')
+            if self.cancel_transfer == False:
+                status_command(ftp_file_name, str(min(round((transferred/file_size) * 100, 2), 100))+'%')
         #Check if the file is already present in local directory
         if(isfile(ftp_file_name)):
             if(replace_command(ftp_file_name, 'File exists in destination folder') == False):
@@ -248,6 +251,7 @@ class sftp_controller:
             status_command(None, 'newline')
         except Exception as e:
             if 'Transfer cancelled' in str(e):
+                status_command(None, 'newline')
                 status_command(ftp_file_name, 'Download cancelled')
             else:
                 status_command(ftp_file_name, 'Download failed')

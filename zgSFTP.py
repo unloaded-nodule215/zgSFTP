@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-#    zgSFTP, Copyrights Vishnu Shankar B
+#    zgSFTP, Copyrights Vishnu Shankar & zgSFTP
 #
 #    List of Tk extensions used:
 #        Arc theme (modified to red color and more styles were added) : https://wiki.tcl.tk/48689
@@ -1120,13 +1120,13 @@ class app:
             if transfer_type == 'upload':
                 try:
                     self.ftpController.ftp.remove(file_name)
-                    self.console_window.insert('Remote file deleted.')
+                    self.console_window.insert_error('Remote file deleted.')
                 except Exception:
                     self.console_window.insert_error('Failed to delete remote file!')
             elif transfer_type == 'download':
                 try:
                     os.remove(file_name)
-                    self.console_window.insert('Local file deleted.')
+                    self.console_window.insert_error('Local file deleted.')
                 except Exception:
                     self.console_window.insert_error('Failed to delete local file!')
 
@@ -1136,7 +1136,8 @@ class app:
     def progress(self, file_name, status):
         #If it is a progress
         if('%' in status):
-            self.console_window.progress(status)
+            if not self.console_window.suppress_percentage:
+                self.console_window.progress(status)
             return
         if(status == 'newline'):
             self.console_window.insert('')
