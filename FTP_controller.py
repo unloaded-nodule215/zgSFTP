@@ -43,7 +43,7 @@ class ftp_controller:
             if(self.server_platform != 'Linux'):
                 files.append(line)
                 return
-            if(self.hidden_files is True or line.split()[8][0] is not '.') or ignore_hidden_files_flag == True:
+            if(self.hidden_files == True or line.split()[8][0] != '.') or ignore_hidden_files_flag == True:
                 files.append(line)
         self.ftp.dir(dir_callback)
         return files
@@ -56,6 +56,8 @@ class ftp_controller:
             #Remove details and append only the file name
             if(self.server_platform == 'Linux'):
                 name = self.get_properties(x)[0]
+            else:
+                name = ' '.join(x.split()[8:])
             file_list.append(name)
             if(len(name) > self.max_len):
                 self.max_len = len(name)
@@ -81,7 +83,7 @@ class ftp_controller:
         try:
             self.ftp.sendcmd('MLST '+path)
             return True;
-        except:
+        except Exception:
             return False;
 
     def rename_dir(self, rename_from, rename_to):
@@ -89,8 +91,8 @@ class ftp_controller:
         self.ftp.sendcmd('RNTO '+ rename_to)    
 
     def move_dir(self, rename_from, rename_to, status_command, replace_command):
-        if(self.is_there(rename_to) is True):
-            if(replace_command(rename_from, 'File/Folder exists in destination folder') is True):
+        if(self.is_there(rename_to) == True):
+            if(replace_command(rename_from, 'File/Folder exists in destination folder') == True):
                 self.delete_dir(rename_to, status_command)
             else:
                 return
@@ -98,7 +100,7 @@ class ftp_controller:
             self.ftp.sendcmd('RNFR '+ rename_from)
             self.ftp.sendcmd('RNTO '+ rename_to)     
             status_command(rename_from, 'Moved')
-        except:
+        except Exception:
             status_command(rename_from, 'Failed to move')
 
     def copy_file(self, file_dir, copy_from, file_size, status_command, replace_command):
@@ -145,7 +147,7 @@ class ftp_controller:
         try:
             self.ftp.sendcmd('DELE '+file_name)
             status_command(file_name, 'Deleted')
-        except:
+        except Exception:
             status_command(file_name, 'Failed to delete')
 
     def delete_dir(self, dir_name, status_command):
@@ -166,24 +168,24 @@ class ftp_controller:
             self.ftp.cwd('..')
             status_command(dir_name, 'Deleting directory')
             self.ftp.sendcmd('RMD '+dir_name)
-        except:
+        except Exception:
             status_command(dir_name, 'Failed to delete directory')
             return
 
     def upload_file(self, file_name, file_size, status_command, replace_command):
         def update_progress(data):
-            self.bytes_uploaded += int(sys.getsizeof(data))
+            self.bytes_uploaded += len(data)
             status_command(file_name, str(min(round((self.bytes_uploaded/file_size) * 100, 8), 100))+'%')
         #Variable to keep trak of number of bytes uploaded
         self.bytes_uploaded = 0
         #Check if the file is already present in ftp server
         if(self.is_there(file_name)):
-            if(replace_command(file_name, 'File exists in destination folder') is False):
+            if(replace_command(file_name, 'File exists in destination folder') == False):
                 return
         #Try to open file, if fails return
         try:
             file_to_up = open(file_name, 'rb')
-        except:
+        except Exception:
             status_command(file_name, 'Failed to open file')
             return
         #Try to upload file
@@ -191,7 +193,7 @@ class ftp_controller:
             status_command(file_name, 'Uploading')
             self.ftp.storbinary('STOR '+file_name, file_to_up, 8192, update_progress)
             status_command(None, 'newline')
-        except:
+        except Exception:
             status_command(file_name, 'Upload failed')
             return
         #Close file
@@ -208,7 +210,7 @@ class ftp_controller:
             else:
                 status_command(dir_name, 'Directory exists')
             self.ftp.cwd(dir_name)
-        except:
+        except Exception:
             status_command(dir_name, 'Failed to create directory')
             return
         #Cycle through items
@@ -227,19 +229,19 @@ class ftp_controller:
     def download_file(self, ftp_file_name, file_size, status_command, replace_command):
         #Function for updating status and writing to file 
         def write_file(data):
-            self.bytes_downloaded += int(sys.getsizeof(data))
+            self.bytes_downloaded += len(data)
             status_command(ftp_file_name, str(min(round((self.bytes_downloaded/file_size) * 100, 8), 100))+'%')
             file_to_down.write(data)
         #Variable to keep track of total bytes downloaded
         self.bytes_downloaded = 0
         #Check if the file is already present in local directory
         if(isfile(ftp_file_name)):
-            if(replace_command(ftp_file_name, 'File exists in destination folder') is False):
+            if(replace_command(ftp_file_name, 'File exists in destination folder') == False):
                 return
         #Try to open file, if fails return
         try:
             file_to_down = open(ftp_file_name, 'wb')
-        except:
+        except Exception:
             status_command(ftp_file_name, 'Failed to create file')
             return
         #Try to upload file
@@ -247,7 +249,7 @@ class ftp_controller:
             status_command(ftp_file_name, 'Downloading')
             self.ftp.retrbinary('RETR '+ftp_file_name, write_file)
             status_command(None, 'newline')
-        except:
+        except Exception:
             status_command(ftp_file_name, 'Download failed')
         #Close file
         file_to_down.close()
@@ -261,7 +263,7 @@ class ftp_controller:
             else:
                 status_command(ftp_dir_name, 'Local directory exists')
             os.chdir(ftp_dir_name)
-        except:
+        except Exception:
             status_command(ftp_dir_name, 'Failed to create local directory')
             return
         #Go into the ftp directory
@@ -317,13 +319,13 @@ class ftp_controller:
         file_list = self.get_file_list(detailed_file_list)
         for file_name, file_details in zip(file_list, detailed_file_list):
             if(self.is_dir(file_details)):
-        	    size+=self.get_dir_size(file_name)
+                size+=self.get_dir_size(file_name)
             else:
                 size+=int(self.get_properties(file_details)[3])
         #Goto to parent directory
         self.ftp.cwd('..')
         #return size
-       	return size
+        return size
 
     def cwd_parent(self, name):
         if('/' not in name): return name
@@ -357,3 +359,10 @@ class ftp_controller:
     def is_dir(self, file_details):
         if(self.server_platform == 'Linux'):
             return 'd' in file_details[0]
+
+    def disconnect(self):
+        if hasattr(self, 'ftp'):
+            try:
+                self.ftp.quit()
+            except Exception:
+                self.ftp.close()

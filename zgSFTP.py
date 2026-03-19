@@ -21,7 +21,7 @@ from TkDND_wrapper import *
 import zgSFTP_ToolbarButton as ToolbarButton
 import zgSFTP_FileDialogs as Filedialogs
 import platform
-if(platform.system() is 'Windows'):
+if(platform.system() == 'Windows'):
     import ctypes
 
 
@@ -360,7 +360,7 @@ class app:
         try:
             self.ftpController.disconnect()
             del self.ftpController
-        except:
+        except Exception:
             pass
         if(self.type_combobox.get() == 'FTP'): self.ftpController = ftp_controller()
         else: self.ftpController = sftp_controller()
@@ -378,7 +378,7 @@ class app:
             thread_request_queue.put(lambda:self.cont_wait())         
             thread_request_queue.put(lambda:self.update_file_list())
             thread_request_queue.put(lambda:self.update_status(message = 'Connected.'))
-        except:
+        except Exception:
             thread_request_queue.put(lambda:self.unlock_status_bar())
             thread_request_queue.put(lambda:self.update_status_red('Unable to connect, please check what you have entered.'))
             #Make sure unable to connect message stays on status bar
@@ -413,7 +413,7 @@ class app:
             thread_request_queue.put(lambda:self.master.wm_title('zgSFTP-'+self.ftpController.pwd()))
             thread_request_queue.put(lambda:self.unlock_status_bar())
             thread_request_queue.put(lambda:self.update_status(''))
-        except:
+        except Exception:
             thread_request_queue.put(lambda:self.unlock_status_bar())
             thread_request_queue.put(lambda:self.update_status_red('Unable to retrieve file list, connection might be lost.'))
             thread_request_queue.put(lambda:self.lock_status_bar())
@@ -438,7 +438,7 @@ class app:
         self.rect_id = self.canvas.create_rectangle(-1, -1, -1, -1, fill = '', outline = '')
         #Draw icons
         #If there are no files, draw watermark
-        if len(self.file_list) is 0:
+        if len(self.file_list) == 0:
             self.canvas.create_image(self.canvas_width/2, self.canvas_height/2, image = self.zgSFTP_glow_icon)
         for file_name, file_details in zip(self.file_list, self.detailed_file_list):
             if((x+1)*self.cell_width > self.canvas_width):
@@ -504,7 +504,7 @@ class app:
         self.canvas.itemconfig(self.rect_id, outline = '')
         self.canvas.coords(self.rect_id, -1, -1, -1, -1) 
         #Display message in status bar in black color only if change_status is true else ignore it
-        if self.change_status is True:
+        if self.change_status == True:
             self.status_label.configure(style = 'TLabel')
             self.current_status.set(message)
 
@@ -513,7 +513,7 @@ class app:
         self.canvas.itemconfig(self.rect_id, outline = '')
         self.canvas.coords(self.rect_id, -1, -1, -1, -1) 
         #Display message in status bar in red color only if change_status is true else ignore it
-        if self.change_status is True:
+        if self.change_status == True:
             self.status_label.configure(style = 'Red.TLabel')
             self.current_status.set(message)
             self.problem()
@@ -635,7 +635,7 @@ class app:
                 try:
                     self.ftpController.ftp.cwd(self.file_list[self.current_file_index])
                     self.update_file_list()       
-                except:
+                except Exception:
                     self.update_status_red('Unable to open directory, try reconnecting.')
                     self.lock_status_bar()
 
@@ -651,7 +651,7 @@ class app:
         try:
             self.ftpController.ftp.cwd(path)
             self.update_file_list()       
-        except:
+        except Exception:
             self.update_status_red('Unable to open directory, try reconnecting.')
             self.lock_status_bar()       
 
@@ -663,10 +663,10 @@ class app:
         #Update GUI now, before mainloop, the following code takes a long time to execute
         self.master.update_idletasks() 
         try:
-            if(self.search_performed is False):
+            if(self.search_performed == False):
                 self.ftpController.ftp.cwd('..')
             self.update_file_list()     
-        except:
+        except Exception:
             self.update_status_red('Unable to open parent directory, try reconnecting.')
             self.lock_status_bar()
 
@@ -674,7 +674,7 @@ class app:
 
     def file_properties_window(self):
         #Check number of files selected
-        if(len(self.selected_file_indices) is not 1): return
+        if(len(self.selected_file_indices) != 1): return
         #Create the string that contains all the properties
         for key in self.selected_file_indices:
             file_details = self.ftpController.get_properties(self.detailed_file_list[key])
@@ -723,7 +723,7 @@ class app:
             #update file list and redraw icons
             thread_request_queue.put(lambda:self.cont_wait())
             thread_request_queue.put(lambda:self.update_file_list())
-        except:
+        except Exception:
             thread_request_queue.put(lambda:self.update_status_red('Unable to rename, try a diffrent name or try reconnecting.'))
             thread_request_queue.put(lambda:self.lock_status_bar())
 
@@ -753,7 +753,7 @@ class app:
             #update file list and redraw icons
             thread_request_queue.put(lambda:self.cont_wait())
             thread_request_queue.put(lambda:self.update_file_list())
-        except:
+        except Exception:
             thread_request_queue.put(lambda:self.update_status_red('Unable to change permissions.'))
             thread_request_queue.put(lambda:self.lock_status_bar())
 
@@ -782,7 +782,7 @@ class app:
             #update file list and redraw icons
             thread_request_queue.put(lambda:self.cont_wait())
             thread_request_queue.put(lambda:self.update_file_list())
-        except:
+        except Exception:
             thread_request_queue.put(lambda:self.update_status_red('Unable to create folder, either invalid characters or not having permission may be the reason or directory already exists.'))
             thread_request_queue.put(lambda:self.lock_status_bar())
 
@@ -939,7 +939,7 @@ class app:
             ftpController.ftp.cwd(path)
             #Set search performed
             thread_request_queue.put(lambda:self.search_finished())
-        except:
+        except Exception:
             thread_request_queue.put(lambda:self.update_status_red('Unable to search, try reconnecting.'))
             thread_request_queue.put(lambda:self.lock_status_bar())
             thread_request_queue.put(lambda:self.progress('Failed', 'Search'))
@@ -1010,7 +1010,7 @@ class app:
         del self.clipboard_file_list[:]
         for index in self.selected_file_indices:
             #If it is a search result get the clipboard path from the search result
-            if(self.search_performed is True):
+            if(self.search_performed == True):
                 self.clipboard_path_list.append('/'.join(self.file_list[index].split('/')[:-1]))
                 self.clipboard_file_list.append(''.join(self.file_list[index].split('/')[-1:]))
             else:
@@ -1026,7 +1026,7 @@ class app:
         del self.clipboard_file_list[:]
         for index in self.selected_file_indices:
             #If it is a search result get the clipboard path from the search result
-            if(self.search_performed is True):
+            if(self.search_performed == True):
                 self.clipboard_path_list.append('/'.join(self.file_list[index].split('/')[:-1]))
                 self.clipboard_file_list.append(''.join(self.file_list[index].split('/')[-1:]))
             else:
@@ -1050,13 +1050,13 @@ class app:
     def clipboard_paste(self, ftpController, clipboard_path_list, clipboard_file_list, detailed_clipboard_file_list, cut, copy):        
         #Set current status
         thread_request_queue.put(lambda:self.update_status('Moving file(s)...'))        
-        if(cut is True):
+        if(cut == True):
             #Loop through all selected files and folders
             for clipboard_path, file_name in zip(clipboard_path_list, clipboard_file_list):
                 ftpController.move_dir(clipboard_path +'/'+file_name, ftpController.pwd()+'/'+file_name, self.progress, self.ask_replace)
             thread_request_queue.put(lambda:self.clear_clipboard())
             thread_request_queue.put(lambda:self.progress('You can now close the window', 'Done'))
-        elif (copy is True):
+        elif (copy == True):
             #Set current status
             thread_request_queue.put(lambda:self.update_status('Copying file(s)...'))
             #Loop through all selected files and folders
@@ -1067,7 +1067,7 @@ class app:
                         ftpController.copy_dir(clipboard_path, file_name, self.progress, self.ask_replace)
                     else:                    
                         ftpController.copy_file(clipboard_path, file_name, int(self.ftpController.get_properties(file_details)[3]), self.progress, self.ask_replace)
-                except:
+                except Exception:
                     thread_request_queue.put(lambda:self.progress('Failed to copy file/folder', file_name))
             thread_request_queue.put(lambda:self.clear_clipboard())
             thread_request_queue.put(lambda:self.progress('You can now close the window', 'Done'))
@@ -1086,20 +1086,20 @@ class app:
 
     def ask_replace(self, file_name, status):
         #Check if replace all has been selected
-        if(self.replace_all is True): return True
+        if(self.replace_all == True): return True
         #Check if skip all has been selected
-        if(self.skip_all is True): return False
+        if(self.skip_all == True): return False
         #Create replace dialog
         self.replace_window = Filedialogs.replace_dialog(self.console_window.console_dialog_window, 'Conflicting files', self.copy_icon, file_name+': '+status+', Replace?')
         #Loop till a button is pressed
-        while self.replace_window.command is '':
+        while self.replace_window.command == '':
             self.replace_window.replace_dialog_window.update()
-        if (self.replace_window.command is 'skip'): return False
-        elif (self.replace_window.command is 'replace'): return True
-        elif (self.replace_window.command is 'skip_all'):
+        if (self.replace_window.command == 'skip'): return False
+        elif (self.replace_window.command == 'replace'): return True
+        elif (self.replace_window.command == 'skip_all'):
             self.skip_all = True            
             return False 
-        elif (self.replace_window.command is 'replace_all'):
+        elif (self.replace_window.command == 'replace_all'):
             self.replace_all = True            
             return True
 
@@ -1161,8 +1161,8 @@ class app:
         self.canvas.bind("<Motion>", self.update_status_and_mouse)
 
     def start_wait(self, event = None):
-        if(self.change_status is False): return
-        if(self.continue_wait is True):
+        if(self.change_status == False): return
+        if(self.continue_wait == True):
             self.continue_wait = False
             return
         self.disable_toolbar()
@@ -1174,7 +1174,7 @@ class app:
         self.continue_wait = True
 
     def do_wait(self, event = None):
-        if(self.wait_anim is False): return
+        if(self.wait_anim == False): return
         #make sure frame index is not above 4
         if(self.wait_frame_index == 4):
             self.wait_frame_index = 0
@@ -1202,7 +1202,7 @@ class app:
 
 #Program entry point
 #Tell windows not to DPI scale this application
-if(platform.system() is 'Windows' and platform.release() != '7'):
+if(platform.system() == 'Windows' and platform.release() != '7'):
     ctypes.windll.shcore.SetProcessDpiAwareness(2)
 #Create root window
 root = Tk()

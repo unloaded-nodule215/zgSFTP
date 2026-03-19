@@ -8,6 +8,7 @@ from os import listdir
 from os.path import isfile, join
 import platform
 import psutil
+import sys
 import zgSFTP_PaneButton as PaneButton
 from tkinter import *
 from tkinter import font
@@ -15,7 +16,7 @@ from tkinter import ttk
 from tkinter import PhotoImage
 from tkinter import messagebox
 from TkDND_wrapper import *
-if(platform.system() is 'Windows'):
+if(platform.system() == 'Windows'):
     import win32api
     import win32con
 
@@ -118,7 +119,7 @@ class about_dialog:
             try:
                 self.about_dialog_window.grab_set()
                 break
-            except: continue
+            except Exception: continue
 
     def destroy(self):
         self.about_dialog_window.destroy()        
@@ -167,7 +168,7 @@ class warning_dialog:
             try:
                 self.warning_dialog_window.grab_set()
                 break
-            except: continue
+            except Exception: continue
 
     def destroy(self):
         self.warning_dialog_window.destroy()   
@@ -224,7 +225,7 @@ class name_dialog:
             try:
                 self.name_dialog_window.grab_set()
                 break
-            except: continue 
+            except Exception: continue 
 
     def destroy(self):
         self.name_dialog_window.destroy()     
@@ -280,7 +281,7 @@ class replace_dialog:
             try:
                 self.replace_dialog_window.grab_set()
                 break
-            except: continue
+            except Exception: continue
 
     def skip(self):
         self.command = 'skip'
@@ -344,7 +345,7 @@ class file_properties_dialog:
             try:
                 self.file_properties_dialog_window.grab_set()
                 break
-            except: continue
+            except Exception: continue
 
     def destroy(self):
         self.file_properties_dialog_window.destroy()   
@@ -419,22 +420,22 @@ class console_dialog:
             try:
                 self.console_dialog_window.grab_set()
                 break
-            except: continue
+            except Exception: continue
 
     def insert(self, line):
         self.console_text.insert('end',line+'\n')
         self.console_text.see('end')
-        if(int(self.console_text.index('end').split('.')[0]) is 26):
+        if(int(self.console_text.index('end').split('.')[0]) == 26):
             self.vbar.config(style = 'TScrollbar')
 
     def progress(self, percentage):
         self.console_text.delete('insert linestart', 'insert lineend')
         self.console_text.insert('end', percentage)
-        if(int(self.console_text.index('end').split('.')[0]) is 26):
+        if(int(self.console_text.index('end').split('.')[0]) == 26):
             self.vbar.config(style = 'TScrollbar')
 
     def close_message(self):
-        if(self.closable is True):
+        if(self.closable == True):
             self.destroy()
 
     def enable_close_button(self):
@@ -631,7 +632,7 @@ class open_file_dialog:
 
         #Code for handling file/folder drag and drop, uses TkDND_wrapper.py
         #See link: https://mail.python.org/pipermail/tkinter-discuss/2005-July/000476.html
-        if(directory_mode is True):
+        if(directory_mode == True):
             self.dnd = TkDND(master)
             self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<Drop>', self.handle_dnd, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
             self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragEnter>', self.show_dnd_icon, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
@@ -643,15 +644,15 @@ class open_file_dialog:
             try:
                 self.open_file_dialog_window.grab_set()
                 break
-            except: continue
+            except Exception: continue
 
     def folder_is_hidden(self, p):
         #See SO question: https://stackoverflow.com/questions/7099290/how-to-ignore-hidden-files-using-os-listdir
-        if platform.system() is 'Windows':
+        if platform.system() == 'Windows':
             try:
                 attribute = win32api.GetFileAttributes(p)
                 return attribute & (win32con.FILE_ATTRIBUTE_HIDDEN | win32con.FILE_ATTRIBUTE_SYSTEM)
-            except:
+            except Exception:
                 return False
         else:
             return p.startswith('.') 
@@ -789,7 +790,7 @@ class open_file_dialog:
 
     def ctrl_select(self, event):
         #Check for directory mode
-        if(self.directory_mode is True): return
+        if(self.directory_mode == True): return
         #Set selected only if valid index
         if(self.current_file_index >= 0 and self.current_file_index < len(self.file_list) and self.mouse_x < self.max_width): 
             #If WAS NOT selected already
@@ -807,7 +808,7 @@ class open_file_dialog:
 
     def drag_select(self, event):
         #Check for directory mode
-        if(self.directory_mode is True): return
+        if(self.directory_mode == True): return
         #Update to get current mouse position
         self.update_status_and_mouse(event)
         #Calculate steps and offsets for x-direction

@@ -13,7 +13,7 @@ class paramiko_sftp_client(paramiko.SFTPClient):
     def go_to_home(self, username):
         try:
             self.cwd('/home/' + username)
-        except:    
+        except Exception:    
             self.cwd('/')
 
 
@@ -47,7 +47,7 @@ class sftp_controller:
     def get_detailed_file_list(self, ignore_hidden_files_flag = False):
         files = []
         for attr in self.ftp.listdir_attr():
-            if(self.hidden_files is True or str(attr).split()[8][0] is not '.') or ignore_hidden_files_flag == True:
+            if(self.hidden_files == True or str(attr).split()[8][0] != '.') or ignore_hidden_files_flag == True:
                 files.append(str(attr))
         return files
 
@@ -83,22 +83,22 @@ class sftp_controller:
         try:
             self.ftp.stat(path)
             return True
-        except:
+        except Exception:
             return False
 
     def rename_dir(self, rename_from, rename_to):
         self.ftp.rename(rename_from, rename_to)    
 
     def move_dir(self, rename_from, rename_to, status_command, replace_command):
-        if(self.is_there(rename_to) is True):
-            if(replace_command(rename_from, 'File/Folder exists in destination folder') is True):
+        if(self.is_there(rename_to) == True):
+            if(replace_command(rename_from, 'File/Folder exists in destination folder') == True):
                 self.delete_dir(rename_to, status_command)
             else:
                 return
         try:
             self.ftp.rename(rename_from, rename_to) 
             status_command(rename_from, 'Moved')
-        except:
+        except Exception:
             status_command(rename_from, 'Failed to move')
 
     def copy_file(self, file_dir, copy_from, file_size, status_command, replace_command):
@@ -145,7 +145,7 @@ class sftp_controller:
         try:
             self.ftp.remove(file_name)
             status_command(file_name, 'Deleted')
-        except:
+        except Exception:
             status_command(file_name, 'Failed to delete')
 
     def delete_dir(self, dir_name, status_command):
@@ -154,7 +154,7 @@ class sftp_controller:
         #Get file lists
         try:
             detailed_file_list = self.get_detailed_file_list(True)
-        except:
+        except Exception:
             status_command(dir_name, 'Failed to delete directory')
             return
         file_list = self.get_file_list(detailed_file_list)
@@ -170,7 +170,7 @@ class sftp_controller:
             self.ftp.cwd('..')
             status_command(dir_name, 'Deleting directory')
             self.ftp.rmdir(dir_name)
-        except:
+        except Exception:
             status_command(dir_name, 'Failed to delete directory')
 
     def upload_file(self, file_name, file_size, status_command, replace_command):
@@ -179,14 +179,14 @@ class sftp_controller:
             status_command(file_name, str(min(round((transferred/file_size) * 100, 8), 100))+'%')
         #Check if the file is already present in ftp server
         if(self.is_there(file_name)):
-            if(replace_command(file_name, 'File exists in destination folder') is False):
+            if(replace_command(file_name, 'File exists in destination folder') == False):
                 return
         #Try to upload file
         try:
             status_command(file_name, 'Uploading')
             self.ftp.put(file_name, file_name, callback = upload_progress)
             status_command(None, 'newline')
-        except:
+        except Exception:
             status_command(file_name, 'Upload failed')
             return
 
@@ -201,7 +201,7 @@ class sftp_controller:
             else:
                 status_command(dir_name, 'Directory exists')
             self.ftp.cwd(dir_name)
-        except:
+        except Exception:
             status_command(dir_name, 'Failed to create directory')
             return
         #Cycle through items
@@ -223,14 +223,14 @@ class sftp_controller:
             status_command(ftp_file_name, str(min(round((transferred/file_size) * 100, 8), 100))+'%')
         #Check if the file is already present in local directory
         if(isfile(ftp_file_name)):
-            if(replace_command(ftp_file_name, 'File exists in destination folder') is False):
+            if(replace_command(ftp_file_name, 'File exists in destination folder') == False):
                 return
         #Try to download file
         try:
             status_command(ftp_file_name, 'Downloading')
             self.ftp.get(ftp_file_name, ftp_file_name, callback = download_progress)
             status_command(None, 'newline')
-        except:
+        except Exception:
             status_command(ftp_file_name, 'Download failed')
 
     def download_dir(self, ftp_dir_name, status_command, replace_command):
@@ -242,7 +242,7 @@ class sftp_controller:
             else:
                 status_command(ftp_dir_name, 'Local directory exists')
             os.chdir(ftp_dir_name)
-        except:
+        except Exception:
             status_command(ftp_dir_name, 'Failed to create local directory')
             return
         #Go into the ftp directory
@@ -298,14 +298,14 @@ class sftp_controller:
         file_list = self.get_file_list(detailed_file_list)
         for file_name, file_details in zip(file_list, detailed_file_list):
             if(self.is_dir(file_details)):
-        	    size+=self.get_dir_size(file_name)
+                size+=self.get_dir_size(file_name)
             else:
                 size+=int(self.get_properties(file_details)[3])
         #Goto to parent directory
         self.ftp.cwd('..')
         #return size
-       	return size
-       	
+        return size
+
     def cwd_parent(self, name):
         if('/' not in name): return name
         parent_name = '/'.join(name.split('/')[:-1])
