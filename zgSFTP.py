@@ -1123,7 +1123,7 @@ class app:
 
 
     def info(self):
-        self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v5.0', '© Vishnu Shankar') 
+        self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v0.1.0', 'Copyright: zgSFTP (2026)\nCopyright: Vishnu Shankar (2018-2019)')
 
 
 
