@@ -6,7 +6,7 @@
 zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can upload, download, create, rename, copy, move and search files/folders.
 #### Currently supported platforms:
 + Linux
-+ Windows XP/7/10
++ Windows 11
 + MacOS
 
 # Getting zgSFTP
