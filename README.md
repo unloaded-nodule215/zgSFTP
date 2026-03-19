@@ -53,9 +53,12 @@ zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can up
 + MIT License. See: https://github.com/unloaded-nodule215/zgSFTP/blob/master/LICENSE.md
 
 # Bugs
-+ Application looks blurry when DPI scaling is enabled.
-+ Search on the root directory does not work.
 + Vibe coded AI slop :)
+
+# TODO
++ Simple method to save and restore last connected site. Not sure if a full bookmark system is in the scope of this simple app.
++ Look into HiDPI stuff.
++ Modernize icons and add text to make functions more obvious.
 
 # Note
 This project was forked from: https://github.com/RainingComputers/whipFTP as a way to test local vibe-coding with Qwen models and OpenCode.
