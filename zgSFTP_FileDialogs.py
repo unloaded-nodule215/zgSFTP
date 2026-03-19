@@ -214,7 +214,7 @@ class name_dialog:
             center_window(master, self.name_dialog_window)
 
         #Bind events
-        self.rename_entry.bind('<Return>', func_command)
+        self.rename_entry.bind('<Return>', lambda e: func_command())
 
         #Prevent new task in taskbar
         self.name_dialog_window.transient(master) 
