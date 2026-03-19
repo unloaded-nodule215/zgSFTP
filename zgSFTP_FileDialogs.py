@@ -353,12 +353,22 @@ class file_properties_dialog:
 
 class console_dialog:
 
-    def __init__(self, master, icon, destroy_func):                
+    def __init__(self, master, icon, destroy_func, stop_callback = None):                
         #Save reference to destroy function
         self.destroy_function = destroy_func
 
+        #Save reference to stop callback
+        self.stop_callback = stop_callback
+
         #Save reference to icon
         self.icon = icon
+
+        #Track current transfer
+        self.current_file = None
+        self.transfer_type = None
+
+        #Transfer cancelled flag
+        self.transfer_cancelled = False
 
         #Create a new dialog box window
         self.console_dialog_window = Toplevel(master)
@@ -404,6 +414,10 @@ class console_dialog:
         self.console_text.bind('<Control-Button-1>', lambda e: 'break')
         self.console_text.bind('<B1-Motion>', lambda e: 'break')
 
+        #Create stop button
+        self.stop_button = ttk.Button(self.button_frame, text = 'Stop Transfer', command = self.stop_transfer, state = DISABLED)
+        self.stop_button.pack(side = 'right', pady = 3, padx = 3 )
+
         #Create close button
         self.close_button = ttk.Button(self.button_frame, text = 'Close', command = self.destroy, state = DISABLED)
         self.close_button.pack(side = 'right', pady = 3, padx = 3 )
@@ -433,6 +447,27 @@ class console_dialog:
         self.console_text.insert('end', percentage)
         if(int(self.console_text.index('end').split('.')[0]) == 26):
             self.vbar.config(style = 'TScrollbar')
+
+    def set_current_file(self, file_name, transfer_type):
+        self.current_file = file_name
+        self.transfer_type = transfer_type
+        self.enable_stop_button()
+
+    def enable_stop_button(self):
+        self.stop_button.config(state = NORMAL)
+
+    def disable_stop_button(self):
+        self.stop_button.config(state = DISABLED)
+
+    def stop_transfer(self):
+        if(self.current_file is None):
+            return
+
+        result = messagebox.askyesno('Stop Transfer', 'Are you sure you wish to interrupt the transfer?')
+        if result == True:
+            self.transfer_cancelled = True
+            if self.stop_callback is not None:
+                self.stop_callback(self.current_file, self.transfer_type)
 
     def close_message(self):
         if(self.closable == True):

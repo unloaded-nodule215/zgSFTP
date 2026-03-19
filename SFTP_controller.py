@@ -35,6 +35,15 @@ class sftp_controller:
         #Variable to tell weather hidden files are enabled
         self.hidden_files = False
 
+        #Variable to track transfer cancellation
+        self.cancel_transfer = False
+
+    def cancel_current_transfer(self):
+        self.cancel_transfer = True
+
+    def reset_cancel_flag(self):
+        self.cancel_transfer = False
+
     def connect_to(self, Host, Username = ' ', Password = ' ', Port = 22): 
         self.transport = paramiko.Transport((Host, Port))
         self.transport.connect(username = Username, password = Password)
@@ -176,6 +185,8 @@ class sftp_controller:
     def upload_file(self, file_name, file_size, status_command, replace_command):
         #Function to update status
         def upload_progress(transferred, remaining):
+            if self.cancel_transfer == True:
+                raise Exception('Transfer cancelled')
             status_command(file_name, str(min(round((transferred/file_size) * 100, 8), 100))+'%')
         #Check if the file is already present in ftp server
         if(self.is_there(file_name)):
@@ -186,8 +197,11 @@ class sftp_controller:
             status_command(file_name, 'Uploading')
             self.ftp.put(file_name, file_name, callback = upload_progress)
             status_command(None, 'newline')
-        except Exception:
-            status_command(file_name, 'Upload failed')
+        except Exception as e:
+            if 'Transfer cancelled' in str(e):
+                status_command(file_name, 'Upload cancelled')
+            else:
+                status_command(file_name, 'Upload failed')
             return
 
     def upload_dir(self, dir_name, status_command, replace_command):
@@ -220,6 +234,8 @@ class sftp_controller:
     def download_file(self, ftp_file_name, file_size, status_command, replace_command):
         #Function to update progress
         def download_progress(transferred, remaining):
+            if self.cancel_transfer == True:
+                raise Exception('Transfer cancelled')
             status_command(ftp_file_name, str(min(round((transferred/file_size) * 100, 8), 100))+'%')
         #Check if the file is already present in local directory
         if(isfile(ftp_file_name)):
@@ -230,8 +246,11 @@ class sftp_controller:
             status_command(ftp_file_name, 'Downloading')
             self.ftp.get(ftp_file_name, ftp_file_name, callback = download_progress)
             status_command(None, 'newline')
-        except Exception:
-            status_command(ftp_file_name, 'Download failed')
+        except Exception as e:
+            if 'Transfer cancelled' in str(e):
+                status_command(ftp_file_name, 'Download cancelled')
+            else:
+                status_command(ftp_file_name, 'Download failed')
 
     def download_dir(self, ftp_dir_name, status_command, replace_command):
         #Create local directory        

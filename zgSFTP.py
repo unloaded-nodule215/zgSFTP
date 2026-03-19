@@ -15,6 +15,7 @@ from tkinter import *
 from tkinter import font
 from tkinter import ttk
 from tkinter import PhotoImage
+from tkinter import messagebox
 from SFTP_controller import *
 from TkDND_wrapper import *
 import zgSFTP_ToolbarButton as ToolbarButton
@@ -1107,7 +1108,30 @@ class app:
             self.master.after(5, self.process_thread_requests)
 
     def create_progress_window(self):
-        self.console_window = Filedialogs.console_dialog(self.master, self.console_icon, self.reset_replace)
+        self.console_window = Filedialogs.console_dialog(self.master, self.console_icon, self.reset_replace, self.handle_stop_transfer)
+
+    def handle_stop_transfer(self, file_name, transfer_type):
+        self.console_window.disable_stop_button()
+        self.ftpController.cancel_current_transfer()
+        self.console_window.insert('Transfer interrupted.')
+
+        result = messagebox.askyesno('Delete Partial File', 'Would you like to delete the partially transferred file?')
+        if result == True:
+            if transfer_type == 'upload':
+                try:
+                    self.ftpController.ftp.remove(file_name)
+                    self.console_window.insert('Remote file deleted.')
+                except Exception:
+                    self.console_window.insert('Failed to delete remote file.')
+            elif transfer_type == 'download':
+                try:
+                    os.remove(file_name)
+                    self.console_window.insert('Local file deleted.')
+                except Exception:
+                    self.console_window.insert('Failed to delete local file.')
+
+        self.ftpController.reset_cancel_flag()
+        self.console_window.enable_close_button()
 
     def progress(self, file_name, status):
         #If it is a progress
@@ -1117,6 +1141,11 @@ class app:
         if(status == 'newline'):
             self.console_window.insert('')
             return
+        #Set current file if starting upload or download
+        if(status == 'Uploading'):
+            self.console_window.set_current_file(file_name, 'upload')
+        elif(status == 'Downloading'):
+            self.console_window.set_current_file(file_name, 'download')
         #Print to console
         self.console_window.insert(status+': '+file_name)
 
