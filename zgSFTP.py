@@ -15,7 +15,6 @@ from tkinter import *
 from tkinter import font
 from tkinter import ttk
 from tkinter import PhotoImage
-from FTP_controller import *
 from SFTP_controller import *
 from TkDND_wrapper import *
 import zgSFTP_ToolbarButton as ToolbarButton
@@ -88,8 +87,8 @@ class app:
         #Save reference to the window
         self.master = master
 
-        #Save reference to ftpcontroller
-        self.ftpController = ftp_controller()
+        #Save reference to sftpcontroller
+        self.ftpController = sftp_controller()
  
         #Set window title and size
         master.wm_title('zgSFTP')
@@ -231,12 +230,8 @@ class app:
         #Create text field for hostname
         self.hostname_entry = ttk.Entry(self.entry_bar)
         self.hostname_entry.pack(side = 'left', expand = True, fill = X)
-        #Create combobox
-        self.connection_type = StringVar()
-        self.type_combobox = ttk.Combobox(self.entry_bar, textvariable=self.connection_type, width = 5, state = 'readonly')
-        self.connection_type.set('SFTP')
-        self.type_combobox['values'] = ('FTP', 'SFTP')
-        self.type_combobox.pack(side = 'left')
+        #Connection type is always SFTP
+        self.connection_type = 'SFTP'
         #Create label for username
         self.label_usrname = ttk.Label(self.entry_bar, text = 'Username:')
         self.label_usrname.pack(side = 'left', padx = 2)
@@ -324,9 +319,6 @@ class app:
 
         #Bind events for all entries/text fields
         self.hostname_entry.bind('<Motion>', lambda event, arg = 'Enter host address.': self.update_status(event, arg)) 
-        self.type_combobox.bind('<Motion>', lambda event, arg = 'Select connection type': self.update_status(event, arg)) 
-        self.type_combobox.bind('<Motion>', lambda event, arg = 'Select connection type': self.update_status(event, arg)) 
-        self.type_combobox.bind('<<ComboboxSelected>>', self.handle_combobox)
         self.usrname_entry.bind('<Motion>', lambda event, arg = 'Enter your username.': self.update_status(event, arg))
         self.pass_entry.bind('<Motion>', lambda event, arg = 'Enter your password.': self.update_status(event, arg))
         self.port_entry.bind('<Motion>', lambda event, arg = 'Enter port.': self.update_status(event, arg))
@@ -339,13 +331,9 @@ class app:
 
 
     def handle_combobox(self, event):
-        #Clear port entry
+        #Clear port entry and set default SFTP port
         self.port_entry.delete(0, 'end') 
-        #Set default port   
-        if(self.type_combobox.get() == 'FTP'): 
-            self.port_entry.insert(END, '21')
-        else: 
-            self.port_entry.insert(END, '22')
+        self.port_entry.insert(END, '22')
 
 
 
@@ -362,8 +350,7 @@ class app:
             del self.ftpController
         except Exception:
             pass
-        if(self.type_combobox.get() == 'FTP'): self.ftpController = ftp_controller()
-        else: self.ftpController = sftp_controller()
+        self.ftpController = sftp_controller()
         self.thread =  threading.Thread(target = self.connect_thread, args = (self.ftpController,
             self.hostname_entry.get(), self.usrname_entry.get(), self.pass_entry.get(), int(self.port_entry.get())))
         self.thread.daemon = True

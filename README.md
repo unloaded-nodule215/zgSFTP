@@ -3,7 +3,7 @@
 </div>
 
 # About
-zgSFTP is a FTP/SFTP client written in python using the tkinter GUI toolkit. Can upload, download, create, rename, copy, move and search files/folders.
+zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can upload, download, create, rename, copy, move and search files/folders.
 #### Currently supported platforms:
 + Linux
 + Windows XP/7/10
@@ -11,16 +11,13 @@ zgSFTP is a FTP/SFTP client written in python using the tkinter GUI toolkit. Can
 
 # Getting zgSFTP
 
-#### Ubuntu/Debian:
-+  Download the [.deb](https://github.com/unloaded-nodule215/zgSFTP/releases/download/v5.0/zgSFTP_5.0.deb) file and install it.
-
 #### Windows:
 + Install Python (minimum required version: python3.6.3 for 10/7 and python3.4.0 for XP), download the [.zip](https://github.com/unloaded-nodule215/zgSFTP/releases/download/v5.0/zgSFTP_5.0_windows.zip) file and extract it. Run `install_dependencies.py` script to install dependencies. Now you can run `zgSFTP.pyw` to launch the application.
 
 #### MacOS:
 + Not released yet. Use `git clone` or 'download zip', Install Python (minimum required version: python3.6.3). Run `install_dependencies.py` script to install dependencies. Now you can run `zgSFTP.py` to launch the application.
 
-#### Other Linux distributions:
+#### Linux:
 + Install Python (minimum required version: python3.6.3), download the [.zip](https://github.com/unloaded-nodule215/zgSFTP/releases/download/v5.0/zgSFTP_5.0_linux.zip) file and extract it. Run `install_dependencies.py` script to install dependencies. Now you can run `zgSFTP.py` to launch the application.
 
 # Controls
