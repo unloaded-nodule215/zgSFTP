@@ -407,6 +407,9 @@ class console_dialog:
         self.console_text.pack(fill = BOTH)
         self.vbar.config(command = self.console_text.yview, style = 'Whitehide.TScrollbar')
         self.console_text['yscrollcommand'] = self.vbar.set
+        
+        #Configure error tag
+        self.console_text.tag_config('error', foreground='red', font=('TkDefaultFont', 10, 'bold'))
 
         #Fix the mouse bug
         self.console_text.bind('<Button-1>', lambda e: 'break')
@@ -438,6 +441,12 @@ class console_dialog:
 
     def insert(self, line):
         self.console_text.insert('end',line+'\n')
+        self.console_text.see('end')
+        if(int(self.console_text.index('end').split('.')[0]) == 26):
+            self.vbar.config(style = 'TScrollbar')
+
+    def insert_error(self, line):
+        self.console_text.insert('end', line+'\n', 'error')
         self.console_text.see('end')
         if(int(self.console_text.index('end').split('.')[0]) == 26):
             self.vbar.config(style = 'TScrollbar')

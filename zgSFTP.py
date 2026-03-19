@@ -930,7 +930,7 @@ class app:
         except Exception:
             thread_request_queue.put(lambda:self.update_status_red('Unable to search, try reconnecting.'))
             thread_request_queue.put(lambda:self.lock_status_bar())
-            thread_request_queue.put(lambda:self.progress('Failed', 'Search'))
+            thread_request_queue.put(lambda:self.console_window.insert_error('Failed!'))
         thread_request_queue.put(lambda:self.progress('You can now close the window', 'Done'))
         thread_request_queue.put(lambda:self.console_window.enable_close_button())    
 
@@ -1056,7 +1056,7 @@ class app:
                     else:                    
                         ftpController.copy_file(clipboard_path, file_name, int(self.ftpController.get_properties(file_details)[3]), self.progress, self.ask_replace)
                 except Exception:
-                    thread_request_queue.put(lambda:self.progress('Failed to copy file/folder', file_name))
+                    thread_request_queue.put(lambda:self.console_window.insert_error('Failed to copy file/folder!'))
             thread_request_queue.put(lambda:self.clear_clipboard())
             thread_request_queue.put(lambda:self.progress('You can now close the window', 'Done'))
         #update file list and redraw icons
@@ -1113,7 +1113,7 @@ class app:
     def handle_stop_transfer(self, file_name, transfer_type):
         self.console_window.disable_stop_button()
         self.ftpController.cancel_current_transfer()
-        self.console_window.insert('Transfer interrupted.')
+        self.console_window.insert_error('Transfer interrupted!')
 
         result = messagebox.askyesno('Delete Partial File', 'Would you like to delete the partially transferred file?')
         if result == True:
@@ -1122,13 +1122,13 @@ class app:
                     self.ftpController.ftp.remove(file_name)
                     self.console_window.insert('Remote file deleted.')
                 except Exception:
-                    self.console_window.insert('Failed to delete remote file.')
+                    self.console_window.insert_error('Failed to delete remote file!')
             elif transfer_type == 'download':
                 try:
                     os.remove(file_name)
                     self.console_window.insert('Local file deleted.')
                 except Exception:
-                    self.console_window.insert('Failed to delete local file.')
+                    self.console_window.insert_error('Failed to delete local file!')
 
         self.ftpController.reset_cancel_flag()
         self.console_window.enable_close_button()
@@ -1152,7 +1152,7 @@ class app:
 
 
     def info(self):
-        self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v0.1.0', 'Copyright: zgSFTP (2026)\nCopyright: Vishnu Shankar (2018-2019)')
+        self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v0.1.1', 'Copyright: zgSFTP (2026)\nCopyright: Vishnu Shankar (2018-2019)')
 
 
 
