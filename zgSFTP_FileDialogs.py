@@ -1,5 +1,5 @@
 
-#    Custom file dialogs for whipFTP, Copyrights Vishnu Shankar B,
+#    Custom file dialogs for zgSFTP, Copyrights Vishnu Shankar B,
 
 
 import os
@@ -8,7 +8,7 @@ from os import listdir
 from os.path import isfile, join
 import platform
 import psutil
-import whipFTP_PaneButton as PaneButton
+import zgSFTP_PaneButton as PaneButton
 from tkinter import *
 from tkinter import font
 from tkinter import ttk

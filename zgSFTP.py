@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-#    whipFTP, Copyrights Vishnu Shankar B
+#    zgSFTP, Copyrights Vishnu Shankar B
 #
 #    List of Tk extensions used:
 #        Arc theme (modified to red color and more styles were added) : https://wiki.tcl.tk/48689
@@ -18,8 +18,8 @@ from tkinter import PhotoImage
 from FTP_controller import *
 from SFTP_controller import *
 from TkDND_wrapper import *
-import whipFTP_ToolbarButton as ToolbarButton
-import whipFTP_FileDialogs as Filedialogs
+import zgSFTP_ToolbarButton as ToolbarButton
+import zgSFTP_FileDialogs as Filedialogs
 import platform
 if(platform.system() is 'Windows'):
     import ctypes
@@ -92,7 +92,7 @@ class app:
         self.ftpController = ftp_controller()
  
         #Set window title and size
-        master.wm_title('whipFTP')
+        master.wm_title('zgSFTP')
         master.minsize(width = 860, height = 560)
 
         #Variable for holding the font
@@ -154,7 +154,7 @@ class app:
         self.console_icon = PhotoImage(file='Icons/console_big.png')
         self.search_icon = PhotoImage(file='Icons/search_big.png')
         self.rename_icon = PhotoImage(file='Icons/rename_big.png')
-        self.whipFTP_icon = PhotoImage(file='Icons/whipFTP_large.png')
+        self.zgSFTP_icon = PhotoImage(file='Icons/zgSFTP_large.png')
         self.goto_icon = PhotoImage(file='Icons/gotopath_big.png')
 
         #Load glow version of icons
@@ -171,7 +171,7 @@ class app:
         self.paste_glow_icon = PhotoImage(file='Icons_glow/paste_big_glow.png')
         self.console_glow_icon = PhotoImage(file='Icons_glow/console_big_glow.png')
         self.search_glow_icon = PhotoImage(file='Icons_glow/search_big_glow.png')
-        self.whipFTP_glow_icon = PhotoImage(file='Icons_glow/whipFTP_large_glow.png')
+        self.zgSFTP_glow_icon = PhotoImage(file='Icons_glow/zgSFTP_large_glow.png')
         self.dnd_glow_icon = PhotoImage(file='Icons_glow/upload_large_glow.png')
         self.goto_glow_icon = PhotoImage(file='Icons_glow/gotopath_big_glow.png')
 
@@ -184,7 +184,7 @@ class app:
         self.problem_icon = PhotoImage(file='Icons_glow/problem.png')
 
         #Set window icon
-        self.master.iconphoto(True, self.whipFTP_icon)
+        self.master.iconphoto(True, self.zgSFTP_icon)
 
         #Create the connect button
         self.connect_button = ToolbarButton.Button(self.toolbar, image = self.connect_icon, image_hover = self.connect_glow_icon, command = self.connect_to_ftp)
@@ -410,7 +410,7 @@ class app:
                 self.detailed_file_list = self.ftpController.get_detailed_file_list()
                 self.file_list = self.ftpController.get_file_list(self.detailed_file_list)
             #Set the window title to current path
-            thread_request_queue.put(lambda:self.master.wm_title('whipFTP-'+self.ftpController.pwd()))
+            thread_request_queue.put(lambda:self.master.wm_title('zgSFTP-'+self.ftpController.pwd()))
             thread_request_queue.put(lambda:self.unlock_status_bar())
             thread_request_queue.put(lambda:self.update_status(''))
         except:
@@ -439,7 +439,7 @@ class app:
         #Draw icons
         #If there are no files, draw watermark
         if len(self.file_list) is 0:
-            self.canvas.create_image(self.canvas_width/2, self.canvas_height/2, image = self.whipFTP_glow_icon)
+            self.canvas.create_image(self.canvas_width/2, self.canvas_height/2, image = self.zgSFTP_glow_icon)
         for file_name, file_details in zip(self.file_list, self.detailed_file_list):
             if((x+1)*self.cell_width > self.canvas_width):
                 y+=1
@@ -1136,7 +1136,7 @@ class app:
 
 
     def info(self):
-        self.info_window = Filedialogs.about_dialog(self.master, 'About', self.whipFTP_icon, 'whipFTP v5.0', '© Vishnu Shankar') 
+        self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v5.0', '© Vishnu Shankar') 
 
 
 
@@ -1218,6 +1218,6 @@ root.tk.eval('package require tkdnd')
 global thread_request_queue
 thread_request_queue = queue.Queue()
 #Initilize the app
-whipFTP = app(root)
+zgSFTP = app(root)
 #Initialize mainloop
 root.mainloop()

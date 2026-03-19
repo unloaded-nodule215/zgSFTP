@@ -1,4 +1,4 @@
-#Custom button class for whipFTP, Copyrights Vishnu Shankar B,
+#Custom button class for zgSFTP, Copyrights Vishnu Shankar B,
 
 from tkinter import *
 from tkinter import ttk

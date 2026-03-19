@@ -1,4 +1,4 @@
-#whipFTP, Copyrights Vishnu Shankar B,
+#zgSFTP, Copyrights Vishnu Shankar B,
 
 import os
 from os import listdir
