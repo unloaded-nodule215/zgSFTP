@@ -711,7 +711,7 @@ class open_file_dialog:
         self.max_len_name = ''
         del self.file_list[:]
         for file in os.listdir():
-            if(self.hidden_files is True or not self.folder_is_hidden(file)):
+            if(self.hidden_files == True or not self.folder_is_hidden(file)):
                 self.file_list.append(file)
                 if(len(file) > self.max_len):
                     self.max_len = len(file)
@@ -822,7 +822,7 @@ class open_file_dialog:
         
     def mouse_select(self, event):
         #Check for directory mode
-        if(self.directory_mode is True and not isfile(self.file_list[self.current_file_index])):
+        if(self.directory_mode == True and not isfile(self.file_list[self.current_file_index])):
            self.change_dir(event)
            return
         #Store start position for drag select

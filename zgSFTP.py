@@ -52,16 +52,31 @@ def save_session(host, username, password, port):
 
 def load_session():
     if isfile('last-session.ini'):
-        config = configparser.ConfigParser()
-        config.read('last-session.ini')
-        if 'Connection' in config:
-            return {
-                'host': config['Connection'].get('host', ''),
-                'username': config['Connection'].get('username', ''),
-                'password': rot13(config['Connection'].get('password', '')),
-                'port': config['Connection'].get('port', '22')
-            }
+        try:
+            config = configparser.ConfigParser()
+            config.read('last-session.ini')
+            if 'Connection' in config and config['Connection'].get('host'):
+                return {
+                    'host': config['Connection'].get('host', ''),
+                    'username': config['Connection'].get('username', ''),
+                    'password': rot13(config['Connection'].get('password', '')),
+                    'port': config['Connection'].get('port', '22')
+                }
+        except Exception:
+            if isfile('last-session.ini'):
+                os.rename('last-session.ini', 'last-session.err')
+            open('last-session.ini', 'w').close()
     return None
+
+
+def init_session_file():
+    if not isfile('last-session.ini'):
+        open('last-session.ini', 'w').close()
+
+
+def clear_session_file():
+    if isfile('last-session.ini'):
+        open('last-session.ini', 'w').close()
 
 
 class app:
@@ -266,7 +281,7 @@ class app:
         self.paste_button.pack(side = 'left', padx = 5)
         #Create remember settings checkbox
         self.remember_settings = BooleanVar(value = False)
-        self.remember_checkbox = ttk.Checkbutton(self.toolbar, text = 'Remember settings', variable = self.remember_settings)
+        self.remember_checkbox = ttk.Checkbutton(self.toolbar, text = 'Remember settings', variable = self.remember_settings, command = self.on_remember_settings_change)
         self.remember_checkbox.pack(side = 'left', padx = 5)
         #Create label field for hostname
         self.label_hostname = ttk.Label(self.entry_bar, text = 'Host:')
@@ -383,6 +398,7 @@ class app:
         self.port_entry.insert(END, '22')
 
     def load_saved_session(self):
+        init_session_file()
         session = load_session()
         if session:
             self.hostname_entry.insert(0, session['host'])
@@ -390,6 +406,7 @@ class app:
             self.pass_entry.insert(0, session['password'])
             self.port_entry.delete(0, END)
             self.port_entry.insert(0, session['port'])
+            self.remember_settings.set(True)
 
     def save_current_session(self):
         if self.remember_settings.get() == True:
@@ -399,6 +416,10 @@ class app:
                 self.pass_entry.get(),
                 self.port_entry.get()
             )
+
+    def on_remember_settings_change(self):
+        if self.remember_settings.get() == False:
+            clear_session_file()
 
     def connect_to_ftp(self, event = None):        
         #Show wait animation
