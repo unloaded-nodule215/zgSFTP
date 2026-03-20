@@ -7,13 +7,22 @@ zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can up
 
 #### Currently supported platforms:
 + Linux - tested with Python 3.14.
-+ Windows 11*
-+ MacOS*
++ Windows 11 (Untested)
++ MacOS (Untested)
 
 # Getting zgSFTP
 The only option currently is to run from source. Simpler options are on the radar.
 
+#### Linux:
++ Use git to clone this repo.
++ Create a python virtual environment - `python -m venv .venv`
++ Enter the venv: `source .venv/bin/activate`
++ Install the dependencies: `pip install -r requirements.txt`
++ Run: `python zgSFTP.py`
++ Leave venv: `deactivate`
+
 #### Windows:
++ Untested.
 + Install Python 3.14.x from https://www.python.org/downloads/windows/
 + Install git and clone this repo, or download the zip and unzip to a folder of your choice.
 + Open a command prompt or terminal and navigate to your zgSFTP source folder.
@@ -21,17 +30,14 @@ The only option currently is to run from source. Simpler options are on the rada
 + Run: `python zgSFTP.py` 
 
 #### MacOS:
-+ Tested with Python 3.14 on Apple Silicon. Full drag-and-drop support via tkinterdnd2.
-+ Install Python 3.14.x from https://www.python.org/downloads/mac-osx/
++ Untested.
++ Install Python 3.14.x from homebrew (https://brew.sh).
 + Install git and clone this repo, or download the zip and unzip to a folder of your choice.
 + Open a terminal and navigate to your zgSFTP source folder.
-+ Run: `pip3 install -r requirements.txt` and wait for it to finish. (Optional: Create a venv first)
++ Create a python virtual environment: `python3 -m venv .venv`
++ Run: `pip3 install -r requirements.txt` and wait for it to finish.
 + Run: `python3 zgSFTP.py`
-
-#### Linux:
-+ Use git to clone this repo
-+ Install the dependencies: `pip install -r requirements.txt`
-+ Run: `python zgSFTP.py`
++ Run: `deactivate` to leave the venv.
 
 # Controls (TODO: Massive UI cleanup)
 + ![](https://raw.githubusercontent.com/unloaded-nodule215/zgSFTP/master/Icons/connect_big.png)
@@ -69,7 +75,7 @@ The only option currently is to run from source. Simpler options are on the rada
 + Stopping a transfer doesn't stop all transfers. Annoying on many little files.
 
 # TODO
-+ Simple method to save and restore last connected site. Not sure if a full bookmark system is in the scope of this simple app.
++ Implement a queue for multifile transfers.
 + Look into HiDPI stuff.
 + Modernize icons and add text to make functions more obvious.
 
