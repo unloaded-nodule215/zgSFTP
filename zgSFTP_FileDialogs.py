@@ -374,6 +374,10 @@ class console_dialog:
         #Suppress percentage display flag
         self.suppress_percentage = False
 
+        #Queue state variables
+        self.queue_paused = False
+        self.queue_stats = {'pending': 0, 'completed': 0, 'failed': 0}
+
         #Create a new dialog box window
         self.console_dialog_window = Toplevel(master)
         #Make it non-resizeble, set title
@@ -405,7 +409,8 @@ class console_dialog:
 
         #Create icon and label
         ttk.Label(self.label_frame, image = icon).pack(padx = 3, side = 'left')
-        ttk.Label(self.label_frame, text = 'Performing tasks....', anchor = 'w').pack(fill = X, side = 'left', pady = 3)
+        self.queue_status_label = ttk.Label(self.label_frame, text = 'Performing tasks....', anchor = 'w')
+        self.queue_status_label.pack(fill = X, side = 'left', pady = 3)
 
         #Create scrollbar
         self.vbar = ttk.Scrollbar(self.text_frame, orient=VERTICAL, style = 'Vertical.TScrollbar')
@@ -429,6 +434,20 @@ class console_dialog:
         #Create stop button
         self.stop_button = ttk.Button(self.button_frame, text = 'Stop Transfer', command = self.stop_transfer, state = DISABLED)
         self.stop_button.pack(side = 'right', pady = 3, padx = 3 )
+
+        #Create resume button (initially disabled)
+        self.resume_button = ttk.Button(self.button_frame,
+            text = 'Resume Queue',
+            command = self.resume_queue,
+            state = DISABLED)
+        self.resume_button.pack(side = 'right', pady = 3, padx = 3 )
+
+        #Create clear queue button (initially enabled)
+        self.clear_button = ttk.Button(self.button_frame,
+            text = 'Clear Queue',
+            command = self.clear_queue,
+            state = NORMAL)
+        self.clear_button.pack(side = 'right', pady = 3, padx = 3 )
 
         #Create close button
         self.close_button = ttk.Button(self.button_frame, text = 'Close', command = self.destroy, state = DISABLED)
@@ -518,6 +537,64 @@ class console_dialog:
             self.transfer_cancelled = True
             if self.stop_callback is not None:
                 self.stop_callback(self.current_file, self.transfer_type)
+
+    def set_queue_paused(self, paused):
+        """Update queue pause state in UI."""
+        self.queue_paused = paused
+        
+        if paused:
+            # Enable resume button
+            self.resume_button.config(state = NORMAL)
+            self.stop_button.config(state = DISABLED)
+            self.clear_button.config(state = DISABLED)
+        else:
+            # Disable resume button
+            self.resume_button.config(state = DISABLED)
+            self.stop_button.config(state = NORMAL)
+            self.clear_button.config(state = NORMAL)
+
+    def set_queue_stats(self, pending, completed, failed):
+        """Update queue statistics display."""
+        self.queue_stats = {
+            'pending': pending,
+            'completed': completed,
+            'failed': failed
+        }
+        
+        # Update label
+        total = pending + completed + failed
+        if total > 0:
+            percentage = int((completed / total) * 100)
+            text = f'{completed}/{total} ({percentage}%): {pending} pending, {failed} failed'
+        else:
+            text = '0/0 (0%): Complete'
+            
+        self.queue_status_label.config(text=text)
+
+    def resume_queue(self):
+        """Resume the paused queue."""
+        if self.stop_callback is not None:
+            self.stop_callback(None, None)  # Signal to resume
+            
+        self.queue_paused = False
+        self.stop_button.config(state = NORMAL)
+        self.resume_button.config(state = DISABLED)
+        self.clear_button.config(state = NORMAL)
+
+    def clear_queue(self):
+        """Clear the pending queue."""
+        result = messagebox.askyesno('Clear Queue',
+            'Are you sure you want to clear the pending queue?')
+        
+        if result:
+            # Clear pending items
+            self.queue_stats['pending'] = 0
+            self.stop_button.config(state = NORMAL)
+            self.resume_button.config(state = DISABLED)
+            self.clear_button.config(state = NORMAL)
+            
+            # Update label
+            ttk.Label(self.label_frame, text='Queue cleared', anchor='w').pack(fill=X, side='left', pady=3)
 
     def close_message(self):
         if(self.closable == True):
