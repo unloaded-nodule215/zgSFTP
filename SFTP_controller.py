@@ -2,9 +2,12 @@
 
 import os
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, normpath, abspath
 import shutil
 import paramiko
+import tempfile
+import secrets
+import threading
 
 class paramiko_sftp_client(paramiko.SFTPClient):
     def cwd(self, path):
@@ -37,12 +40,23 @@ class sftp_controller:
 
         #Variable to track transfer cancellation
         self.cancel_transfer = False
+        self.cancel_lock = threading.Lock()
 
     def cancel_current_transfer(self):
-        self.cancel_transfer = True
+        with self.cancel_lock:
+            self.cancel_transfer = True
 
     def reset_cancel_flag(self):
-        self.cancel_transfer = False
+        with self.cancel_lock:
+            self.cancel_transfer = False
+
+    def _validate_path(self, path):
+        normalized = normpath(path)
+        if normalized.startswith('..'):
+            return False
+        if normalized.startswith('/') and path.count('..') > 0:
+            return False
+        return True
 
     def connect_to(self, Host, Username = ' ', Password = ' ', Port = 22): 
         self.transport = paramiko.Transport((Host, Port))
@@ -111,44 +125,82 @@ class sftp_controller:
             status_command(rename_from, 'Failed to move')
 
     def copy_file(self, file_dir, copy_from, file_size, status_command, replace_command):
-        #Change to script's directory
-        abspath = os.path.abspath(__file__)
-        dname = os.path.dirname(abspath)
-        os.chdir(dname)
-        if not os.path.exists('copy_temps'):
-            os.makedirs('copy_temps')
-        os.chdir('copy_temps')
-        #Save the current path so that we can copy later
-        dir_path_to_copy = self.ftp.getcwd()
-        #Change to the file's path and download it
-        self.ftp.cwd(file_dir)
-        self.download_file(copy_from, file_size, status_command, replace_command)
-        #Change back to the saved path and upload it
-        self.ftp.cwd(dir_path_to_copy)
-        self.upload_file(copy_from, file_size, status_command, replace_command)
-        #Delete the downloaded file
-        os.remove(copy_from)
-        status_command(copy_from, 'Deleted local file')
+        if not self._validate_path(file_dir) or not self._validate_path(copy_from):
+            status_command(copy_from, 'Invalid path')
+            return
+        
+        temp_dir = None
+        try:
+            temp_dir = tempfile.mkdtemp(prefix='sftp_copy_')
+            temp_file = os.path.join(temp_dir, os.path.basename(copy_from))
+            
+            dir_path_to_copy = self.ftp.getcwd()
+            self.ftp.cwd(file_dir)
+            
+            def download_status(name, msg):
+                status_command(name, msg)
+            def download_replace(name, msg):
+                return replace_command(name, msg)
+            
+            self.ftp.get(copy_from, temp_file)
+            status_command(copy_from, 'Downloaded to temp')
+            
+            self.ftp.cwd(dir_path_to_copy)
+            
+            def upload_status(name, msg):
+                status_command(name, msg)
+            def upload_replace(name, msg):
+                return replace_command(name, msg)
+            
+            self.ftp.put(temp_file, copy_from)
+            status_command(copy_from, 'Upload complete')
+        except Exception as e:
+            status_command(copy_from, 'Copy failed: ' + str(e))
+        finally:
+            if temp_dir and os.path.exists(temp_dir):
+                try:
+                    shutil.rmtree(temp_dir)
+                except Exception:
+                    pass
 
     def copy_dir(self, file_dir, copy_from, status_command, replace_command):
-        #Change to script's directory
-        abspath = os.path.abspath(__file__)
-        dname = os.path.dirname(abspath)
-        os.chdir(dname)
-        if not os.path.exists('copy_temps'):
-            os.makedirs('copy_temps')
-        os.chdir('copy_temps')
-        #Save the current path so that we can copy later
-        dir_path_to_copy = self.ftp.getcwd()
-        #Change to the file's path and download it
-        self.ftp.cwd(file_dir)
-        self.download_dir(copy_from, status_command, replace_command)
-        #Change back to the saved path and upload it
-        self.ftp.cwd(dir_path_to_copy)
-        self.upload_dir(copy_from, status_command, replace_command)
-        #Delete the downloaded folder
-        shutil.rmtree(copy_from)
-        status_command(copy_from, 'Deleting local directory')
+        if not self._validate_path(file_dir) or not self._validate_path(copy_from):
+            status_command(copy_from, 'Invalid path')
+            return
+        
+        temp_dir = None
+        try:
+            temp_dir = tempfile.mkdtemp(prefix='sftp_copy_')
+            temp_path = os.path.join(temp_dir, os.path.basename(copy_from))
+            
+            dir_path_to_copy = self.ftp.getcwd()
+            self.ftp.cwd(file_dir)
+            
+            def download_status(name, msg):
+                status_command(name, msg)
+            def download_replace(name, msg):
+                return replace_command(name, msg)
+            
+            self._download_dir_recursive(copy_from, temp_path, download_status, download_replace)
+            status_command(copy_from, 'Downloaded to temp')
+            
+            self.ftp.cwd(dir_path_to_copy)
+            
+            def upload_status(name, msg):
+                status_command(name, msg)
+            def upload_replace(name, msg):
+                return replace_command(name, msg)
+            
+            self._upload_dir_recursive(temp_path, copy_from, upload_status, upload_replace)
+            status_command(copy_from, 'Upload complete')
+        except Exception as e:
+            status_command(copy_from, 'Copy failed: ' + str(e))
+        finally:
+            if temp_dir and os.path.exists(temp_dir):
+                try:
+                    shutil.rmtree(temp_dir)
+                except Exception:
+                    pass
 
     def delete_file(self, file_name, status_command):
         try:
@@ -185,9 +237,11 @@ class sftp_controller:
     def upload_file(self, file_name, file_size, status_command, replace_command):
         #Function to update status
         def upload_progress(transferred, remaining):
-            if self.cancel_transfer == True:
+            with self.cancel_lock:
+                cancelled = self.cancel_transfer
+            if cancelled:
                 raise Exception('Transfer cancelled')
-            if self.cancel_transfer == False:
+            if not cancelled:
                 status_command(file_name, str(min(round((transferred/file_size) * 100, 2), 100))+'%')
         #Check if the file is already present in ftp server
         if(self.is_there(file_name)):
@@ -237,9 +291,11 @@ class sftp_controller:
     def download_file(self, ftp_file_name, file_size, status_command, replace_command):
         #Function to update progress
         def download_progress(transferred, remaining):
-            if self.cancel_transfer == True:
+            with self.cancel_lock:
+                cancelled = self.cancel_transfer
+            if cancelled:
                 raise Exception('Transfer cancelled')
-            if self.cancel_transfer == False:
+            if not cancelled:
                 status_command(ftp_file_name, str(min(round((transferred/file_size) * 100, 2), 100))+'%')
         #Check if the file is already present in local directory
         if(isfile(ftp_file_name)):
@@ -362,6 +418,53 @@ class sftp_controller:
     def is_dir(self, file_details):
         return 'd' in file_details[0]
 
+    def _download_dir_recursive(self, remote_path, local_path, status_command, replace_command):
+        if not os.path.exists(local_path):
+            os.makedirs(local_path)
+        
+        self.ftp.cwd(remote_path)
+        detailed_file_list = self.get_detailed_file_list(True)
+        file_list = self.get_file_list(detailed_file_list)
+        
+        for file_name, file_details in zip(file_list, detailed_file_list):
+            if self.is_dir(file_details):
+                self._download_dir_recursive(file_name, os.path.join(local_path, file_name), status_command, replace_command)
+            else:
+                file_size = int(self.get_properties(file_details)[3])
+                self.download_file(file_name, file_size, status_command, replace_command)
+        
+        if remote_path != '/':
+            self.ftp.cwd('..')
+
+    def _upload_dir_recursive(self, local_path, remote_path, status_command, replace_command):
+        try:
+            if not self.is_there(remote_path):
+                self.ftp.mkdir(remote_path)
+                status_command(remote_path, 'Creating directory')
+            else:
+                status_command(remote_path, 'Directory exists')
+            self.ftp.cwd(remote_path)
+        except Exception:
+            status_command(remote_path, 'Failed to create directory')
+            return
+        
+        for filename in os.listdir(local_path):
+            local_file_path = os.path.join(local_path, filename)
+            if os.path.isfile(local_file_path):
+                self.upload_file(filename, os.path.getsize(local_file_path), status_command, replace_command)
+            else:
+                self._upload_dir_recursive(local_file_path, filename, status_command, replace_command)
+        
+        self.ftp.cwd('..')
+
     def disconnect(self):
-        if self.ftp:
-            self.ftp.close()
+        try:
+            if hasattr(self, 'ftp') and self.ftp:
+                self.ftp.close()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'transport') and self.transport:
+                self.transport.close()
+        except Exception:
+            pass

@@ -116,11 +116,14 @@ class about_dialog:
 
         #Focus on the dialog box, freeze controll of main window
         self.about_dialog_window.focus_force()
-        while True:
+        max_attempts = 10
+        for _ in range(max_attempts):
             try:
                 self.about_dialog_window.grab_set()
                 break
-            except Exception: continue
+            except Exception:
+                import time
+                time.sleep(0.1)
 
     def destroy(self):
         self.about_dialog_window.destroy()        
@@ -165,11 +168,14 @@ class warning_dialog:
 
         #Focus on the dialog box, freeze controll of main window
         self.warning_dialog_window.focus_force()
-        while True:
+        max_attempts = 10
+        for _ in range(max_attempts):
             try:
                 self.warning_dialog_window.grab_set()
                 break
-            except Exception: continue
+            except Exception:
+                import time
+                time.sleep(0.1)
 
     def destroy(self):
         self.warning_dialog_window.destroy()   
@@ -222,11 +228,14 @@ class name_dialog:
 
         #Focus on the dialog box, freeze controll of main window
         self.name_dialog_window.focus_force()
-        while True:
+        max_attempts = 10
+        for _ in range(max_attempts):
             try:
                 self.name_dialog_window.grab_set()
                 break
-            except Exception: continue 
+            except Exception:
+                import time
+                time.sleep(0.1)
 
     def destroy(self):
         self.name_dialog_window.destroy()     
@@ -278,11 +287,14 @@ class replace_dialog:
 
         #Focus on the dialog box, freeze controll of main window
         self.replace_dialog_window.focus_force()
-        while True:
+        max_attempts = 10
+        for _ in range(max_attempts):
             try:
                 self.replace_dialog_window.grab_set()
                 break
-            except Exception: continue
+            except Exception:
+                import time
+                time.sleep(0.1)
 
     def skip(self):
         self.command = 'skip'
@@ -342,11 +354,14 @@ class file_properties_dialog:
 
         #Focus on the dialog box, freeze controll of main window
         self.file_properties_dialog_window.focus_force()
-        while True:
+        max_attempts = 10
+        for _ in range(max_attempts):
             try:
                 self.file_properties_dialog_window.grab_set()
                 break
-            except Exception: continue
+            except Exception:
+                import time
+                time.sleep(0.1)
 
     def destroy(self):
         self.file_properties_dialog_window.destroy()   
@@ -461,11 +476,14 @@ class console_dialog:
 
         #Focus on the dialog box, freeze controll of main window
         self.console_dialog_window.focus_force()
-        while True:
+        max_attempts = 10
+        for _ in range(max_attempts):
             try:
                 self.console_dialog_window.grab_set()
                 break
-            except Exception: continue
+            except Exception:
+                import time
+                time.sleep(0.1)
 
     def insert(self, line):
         self.console_text.insert('end',line+'\n')
@@ -805,11 +823,14 @@ class open_file_dialog:
 
         #Focus on the dialog box, freeze controll of main window
         self.open_file_dialog_window.focus_force()
-        while True:
+        max_attempts = 10
+        for _ in range(max_attempts):
             try:
                 self.open_file_dialog_window.grab_set()
                 break
-            except Exception: continue
+            except Exception:
+                import time
+                time.sleep(0.1)
 
     def folder_is_hidden(self, p):
         #See SO question: https://stackoverflow.com/questions/7099290/how-to-ignore-hidden-files-using-os-listdir
@@ -1041,15 +1062,19 @@ class open_file_dialog:
         self.selected_file_indices.clear()
         #Check for valid index
         if(self.current_file_index >= 0 and self.current_file_index < len(self.file_list) and self.mouse_x < self.max_width):
-            if(not isfile(self.file_list[self.current_file_index])):
-                #Change directory and update file list
-                os.chdir(self.file_list[self.current_file_index])
-                self.update_file_list()        
-                #Redraw all icons        
-                self.draw_icons()
-                #Change directory text
-                self.directory_text.delete(0, 'end')
-                self.directory_text.insert(END, os.getcwd()) 
+            dir_name = self.file_list[self.current_file_index]
+            if(not isfile(dir_name)):
+                # Validate path to prevent traversal
+                normalized = os.path.normpath(dir_name)
+                if not normalized.startswith('..'):
+                    #Change directory and update file list
+                    os.chdir(dir_name)
+                    self.update_file_list()        
+                    #Redraw all icons        
+                    self.draw_icons()
+                    #Change directory text
+                    self.directory_text.delete(0, 'end')
+                    self.directory_text.insert(END, os.getcwd())
 
     def dir_up(self):   
         #Deselect everythin
@@ -1068,23 +1093,27 @@ class open_file_dialog:
         self.deselect_everything()
         #Get path from text field
         dir_path = self.directory_text.get()
-        #Chack validity and change directory
-        if os.path.isdir(dir_path): os.chdir(dir_path)
-        #Update file list and redraw icons
-        self.update_file_list()
-        self.draw_icons()
+        # Validate path to prevent traversal
+        normalized = os.path.normpath(dir_path)
+        if not normalized.startswith('..') and os.path.isdir(dir_path):
+            os.chdir(dir_path)
+            #Update file list and redraw icons
+            self.update_file_list()
+            self.draw_icons()
 
     def change_dir_side_bar(self, path, event = None):
         #Deselect everything
         self.deselect_everything()
-        #Chack validity and change directory
-        if os.path.isdir(path): os.chdir(path)
-        #Change directory text
-        self.directory_text.delete(0, 'end')
-        self.directory_text.insert(END, os.getcwd()) 
-        #Update file list and redraw icons
-        self.update_file_list()
-        self.draw_icons()
+        # Validate path to prevent traversal
+        normalized = os.path.normpath(path)
+        if not normalized.startswith('..') and os.path.isdir(path):
+            os.chdir(path)
+            #Change directory text
+            self.directory_text.delete(0, 'end')
+            self.directory_text.insert(END, os.getcwd()) 
+            #Update file list and redraw icons
+            self.update_file_list()
+            self.draw_icons()
 
     def destroy(self):
         self.open_file_dialog_window.destroy()

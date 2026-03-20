@@ -9,18 +9,21 @@ def get_mounts():
     mountpoints = []    
 
     if(platform.system() == 'Linux'):
-        f = open('/proc/mounts')
-
         dev_types = ['/dev/sda', '/dev/sdc', '/dev/sdb', '/dev/hda', '/dev/hdc', '/dev/hdb', '/dev/nvme']
 
-        for line in f:
-            details = line.split()
-            if(details[0][:-1] in dev_types):
-                if(details[1] != '/boot/efi'):
-                    details_decoded_string = bytes(details[1], "utf-8").decode("unicode_escape")
-                    mountpoints.append(details_decoded_string)
-
-        f.close()
+        try:
+            with open('/proc/mounts') as f:
+                for line in f:
+                    details = line.split()
+                    if len(details) >= 2 and details[0][:-1] in dev_types:
+                        if details[1] != '/boot/efi':
+                            try:
+                                details_decoded_string = bytes(details[1], "utf-8").decode("unicode_escape")
+                                mountpoints.append(details_decoded_string)
+                            except Exception:
+                                pass
+        except Exception:
+            pass
     elif(platform.system() == 'Darwin'):
         for mountpoint in os.listdir('/Volumes/'):
             mountpoints.append('/Volumes/' + mountpoint)

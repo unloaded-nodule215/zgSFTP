@@ -551,11 +551,11 @@ class app:
         self.canvas.configure(scrollregion = '-1 -1 ' + str(self.canvas_width) + ' ' + str(scroll_region_y))
         #Redraw all selected-highlight rectangles for selected files
         for file_index in self.selected_file_indices:
-            #Round canvas's width to nearest multiple of self.cell_width, width of each cell
+           #Round canvas's width to nearest multiple of self.cell_width, width of each cell
             self.max_width = self.canvas_width - (self.canvas_width % self.cell_width) 
-            max_no_cells_x  = self.max_width/self.cell_width 
-            x = file_index%max_no_cells_x
-            y = int(file_index/max_no_cells_x)
+            max_no_cells_x  = self.max_width // self.cell_width 
+            x = file_index % max_no_cells_x
+            y = file_index // max_no_cells_x
             self.selected_file_indices[file_index] = self.canvas.create_rectangle(x*self.cell_width+2, y*35+2, (x+1)*self.cell_width-1, (y+1)*35-1, fill = '', outline = 'Red')
         
 
@@ -569,7 +569,7 @@ class app:
         #Round canvas's width to nearest multiple of self.cell_width, width of each cell
         self.max_width = self.canvas_width - (self.canvas_width % self.cell_width)
         #Use index = (y*width)+x to figure out the file index from canvas and mouse position
-        self.current_file_index = int(((self.max_width/self.cell_width)*self.y_cell_pos) + self.x_cell_pos)
+        self.current_file_index = int(((self.max_width // self.cell_width) * self.y_cell_pos) + self.x_cell_pos)
         #Set status only if valid index, draw mouse-hover highlight rectangle
         if(self.current_file_index >= 0 and self.current_file_index < len(self.file_list) and self.mouse_x < self.max_width):
             self.update_status(event, self.detailed_file_list[self.current_file_index])
@@ -679,9 +679,9 @@ class app:
         for i in range(self.x_cell_pos, self.start_x +start_x_offset, step_x):
             for j in range(self.y_cell_pos, self.start_y +start_y_offset, step_y):
                 #Calculate index
-                file_index = int(((self.max_width/self.cell_width)*j) + i)
+                file_index = int(((self.max_width // self.cell_width) * j) + i)
                 #Set selected only if valid index
-                if(file_index >= 0 and file_index < len(self.file_list) and i < self.max_width/self.cell_width):   
+                if(file_index >= 0 and file_index < len(self.file_list) and i < self.max_width // self.cell_width):
                     #Draw a 'selected' highlighting rectangle and save a reference to the rectangle in selected file dictionary
                     self.selected_file_indices[file_index] = self.canvas.create_rectangle(i*self.cell_width+2, j*35+2, (i+1)*self.cell_width-1, (j+1)*35-1, fill = '',
                     outline = 'Red')
@@ -698,36 +698,49 @@ class app:
         #Parse Tcl list: extract items in braces or space-separated
         file_list = []
         i = 0
-        while i < len(uri_list):
-            if uri_list[i] == '{':
-                #Start of braced item
-                j = i + 1
-                brace_count = 1
-                while j < len(uri_list) and brace_count > 0:
-                    if uri_list[j] == '{':
-                        brace_count += 1
-                    elif uri_list[j] == '}':
-                        brace_count -= 1
-                    j += 1
-                item = uri_list[i+1:j-1]
-            else:
-                #Space-separated item
-                j = i
-                while j < len(uri_list) and uri_list[j] != ' ':
-                    j += 1
-                item = uri_list[i:j]
+        try:
+            while i < len(uri_list):
+                if uri_list[i] == '{':
+                    #Start of braced item
+                    j = i + 1
+                    brace_count = 1
+                    while j < len(uri_list) and brace_count > 0:
+                        if uri_list[j] == '{':
+                            brace_count += 1
+                        elif uri_list[j] == '}':
+                            brace_count -= 1
+                        j += 1
+                    item = uri_list[i+1:j-1]
+                else:
+                    #Space-separated item
+                    j = i
+                    while j < len(uri_list) and uri_list[j] != ' ':
+                        j += 1
+                    item = uri_list[i:j]
+                    i = j
+                    continue
+                #Decode URL-encoded URI and remove file:// prefix
+                try:
+                    decoded = unquote(item)
+                except Exception:
+                    i = j
+                    continue
+                    
+                if decoded.startswith('file://'):
+                    decoded = decoded[7:]
+                #Handle Windows drive letters (file:///C:/path) - remove leading slash after drive letter
+                if decoded.startswith('/') and len(decoded) > 2 and decoded[1] == ':':
+                    decoded = decoded[1:]
+                # Validate path - prevent path traversal
+                normalized = os.path.normpath(decoded)
+                if normalized.startswith('..'):
+                    i = j
+                    continue
+                # Unix paths keep their leading / for os.chdir() to work
+                file_list.append(decoded)
                 i = j
-                continue
-            #Decode URL-encoded URI and remove file:// prefix
-            decoded = unquote(item)
-            if decoded.startswith('file://'):
-                decoded = decoded[7:]
-            #Handle Windows drive letters (file:///C:/path) - remove leading slash after drive letter
-            if decoded.startswith('/') and len(decoded) > 2 and decoded[1] == ':':
-                decoded = decoded[1:]
-            # Unix paths keep their leading / for os.chdir() to work
-            file_list.append(decoded)
-            i = j
+        except Exception:
+            pass
         self.dnd_file_list = file_list
         self.upload_thread_dnd()
 

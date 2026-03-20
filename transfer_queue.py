@@ -10,6 +10,8 @@ import configparser
 import threading
 from os.path import isfile, join, abspath, dirname
 
+MAX_QUEUE_SIZE = 10000
+
 
 def escape_config_value(value):
     """Escape special characters for configparser values."""
@@ -189,6 +191,10 @@ class TransferQueue:
     def enqueue(self, path, file_type='file'):
         """Add a file/folder to the queue."""
         with self.lock:
+            # Check queue size limit
+            if len(self._queue_items) >= MAX_QUEUE_SIZE:
+                return False
+            
             # Validate path
             if not self._validate_path(path):
                 return False
@@ -210,6 +216,10 @@ class TransferQueue:
     def enqueue_to_front(self, path, file_type='file'):
         """Add a file/folder to the front of the queue."""
         with self.lock:
+            # Check queue size limit
+            if len(self._queue_items) >= MAX_QUEUE_SIZE:
+                return False
+            
             # Validate path
             if not self._validate_path(path):
                 return False
@@ -361,11 +371,15 @@ class TransferQueue:
         # Path cannot be empty
         if not path:
             return False
-            
-        # Path cannot be absolute (must be relative to script)
-        if os.path.isabs(path):
+        
+        # Allow both absolute and relative paths
+        # Normalize path to prevent traversal
+        normalized = os.path.normpath(path)
+        
+        # Check for path traversal attempts
+        if normalized.startswith('..'):
             return False
-            
+        
         return True
         
     def get_total_files(self):
