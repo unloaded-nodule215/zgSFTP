@@ -61,7 +61,7 @@ def generate_key_pair(name, passphrase=None):
     if isfile(private_key_path):
         return False, 'Key already exists'
     
-    key = paramiko.Ed25519Key.generate()
+    key = paramiko.generate_key(key_type='ed25519')
     
     with open(private_key_path, 'wb') as f:
         key.write_private_key(f, password=passphrase.encode() if passphrase else None)
@@ -85,11 +85,11 @@ def import_key(name, private_key_path, passphrase=None):
         return False, 'Key already exists'
     
     try:
-        with open(private_key_path, 'rb') as f:
-            key = paramiko.PKey.from_private_key(f, password=passphrase.encode() if passphrase else None)
+        passphrase_bytes = passphrase.encode() if passphrase else None
+        key = paramiko.PKey.from_private_key_file(private_key_path, password=passphrase_bytes)
         
         with open(dest_private_path, 'wb') as f:
-            key.write_private_key(f, password=passphrase.encode() if passphrase else None)
+            key.write_private_key(f, password=passphrase_bytes)
             os.chmod(dest_private_path, 0o600)
         
         with open(dest_public_path, 'w') as f:
@@ -124,8 +124,7 @@ def load_key(name):
         return None
     
     try:
-        with open(private_key_path, 'rb') as f:
-            return paramiko.Ed25519Key.from_private_key_file(private_key_path)
+        return paramiko.PKey.from_private_key_file(private_key_path)
     except paramiko.PasswordRequiredException:
         return 'PASSWORD_REQUIRED'
     except Exception:
@@ -244,10 +243,12 @@ class HostKeyManager:
         keys = list_local_keys()
         for key_info in keys:
             try:
-                with open(key_info['private_path'], 'rb') as f:
-                    key = paramiko.PKey.from_private_key(f)
-                    key_type = key.get_name().upper()
-                    fingerprint = key.get_fingerprint().hex()
+                key = paramiko.PKey.from_private_key_file(key_info['private_path'])
+                key_type = key.get_name().upper()
+                fingerprint = key.get_fingerprint().hex()
+            except paramiko.PasswordRequiredException:
+                key_type = 'ED25519*'
+                fingerprint = '(protected)'
             except Exception:
                 key_type = 'UNKNOWN'
                 fingerprint = 'N/A'
@@ -277,7 +278,7 @@ class HostKeyManager:
         """Import an existing key."""
         file_path = filedialog.askopenfilename(
             title='Select Private Key File',
-            filetypes=[('SSH Private Keys', '*.pem *.key *.ed25519 *.rsa *.dsa *.ec'), ('All Files', '*.*')]
+            filetypes=[('All Files', '*.*')]
         )
 
         if not file_path:
