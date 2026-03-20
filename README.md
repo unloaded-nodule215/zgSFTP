@@ -16,7 +16,8 @@ zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can up
 + Coming soon. If you have python installed already, install the dependencies and try: `python zgSFTP.py` and see.
 
 #### MacOS:
-+ Maybe. Will be tested later. If you have a Mac you can test it by installing the dependencies and running: `python zgSFTP.py` and see.
++ Tested with Python 3.14 on Apple Silicon. **Note: Drag-and-drop support is disabled on Apple Silicon macOS** due to TkDND architecture incompatibility. Use the Upload button instead.
++ If you have a Mac you can test it by installing the dependencies and running: `python zgSFTP.py` and see.
 
 #### Linux:
 + Clone the repo, install the dependencies and run `python zgSFTP.py` to launch the application. Tested with Python 3.14.

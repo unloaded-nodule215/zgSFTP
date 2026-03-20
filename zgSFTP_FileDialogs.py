@@ -716,11 +716,15 @@ class open_file_dialog:
 
         #Code for handling file/folder drag and drop, uses TkDND_wrapper.py
         #See link: https://mail.python.org/pipermail/tkinter-discuss/2005-July/000476.html
+        #DND may not be available on all platforms (e.g., Apple Silicon macOS)
         if(directory_mode == True):
-            self.dnd = TkDND(master)
-            self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<Drop>', self.handle_dnd, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
-            self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragEnter>', self.show_dnd_icon, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
-            self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragLeave>', lambda action, actions, type, win, X, Y, x, y, data:self.draw_icons(), ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
+            try:
+                self.dnd = TkDND(master)
+                self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<Drop>', self.handle_dnd, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
+                self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragEnter>', self.show_dnd_icon, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
+                self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragLeave>', lambda action, actions, type, win, X, Y, x, y, data:self.draw_icons(), ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
+            except Exception:
+                pass  # DND not available, continue without it
 
         #Focus on the dialog box, freeze controll of main window
         self.open_file_dialog_window.focus_force()
