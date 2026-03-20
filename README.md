@@ -11,18 +11,24 @@ zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can up
 + MacOS*
 
 # Getting zgSFTP
+The only option currently is to run from source. Simpler options are on the radar.
 
 #### Windows:
-+ Coming soon. If you have python installed already, install the dependencies and try: `python zgSFTP.py` and see.
++ Install Python 3.14.x from https://www.python.org/downloads/windows/
++ Install git and clone this repo, or download the zip and unzip to a folder of your choice.
++ Open a command prompt or terminal and navigate to your zgSFTP source folder.
++ Run: `pip install -r requirements.txt` and wait for it to finish. (Optional: Create a venv first)
++ Run: `python zgSFTP.py` 
 
 #### MacOS:
-+ Tested with Python 3.14 on Apple Silicon. **Note: Drag-and-drop support is disabled on Apple Silicon macOS** due to TkDND architecture incompatibility. Use the Upload button instead.
-+ If you have a Mac you can test it by installing the dependencies and running: `python zgSFTP.py` and see.
++ Currently broken due to no TkDND support for Apple Silicon. Replacement on the way. Possibly.
 
 #### Linux:
-+ Clone the repo, install the dependencies and run `python zgSFTP.py` to launch the application. Tested with Python 3.14.
++ Use git to clone this repo
++ Install the dependencies: `pip install -r requirements.txt`
++ Run: `python zgSFTP.py`
 
-# Controls
+# Controls (TODO: Massive UI cleanup)
 + ![](https://raw.githubusercontent.com/unloaded-nodule215/zgSFTP/master/Icons/connect_big.png)
 *Start connection*
 + ![](https://raw.githubusercontent.com/unloaded-nodule215/zgSFTP/master/Icons/upload_big.png)
@@ -55,6 +61,7 @@ zgSFTP is an SFTP client written in python using the tkinter GUI toolkit. Can up
 
 # Bugs
 + Vibe coded AI slop :)
++ Stopping a transfer doesn't stop all transfers. Annoying on many little files.
 
 # TODO
 + Simple method to save and restore last connected site. Not sure if a full bookmark system is in the scope of this simple app.
