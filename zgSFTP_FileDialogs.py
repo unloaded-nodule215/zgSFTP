@@ -377,7 +377,7 @@ class console_dialog:
         self.console_dialog_window = Toplevel(master)
         #Make it non-resizeble, set title
         self.console_dialog_window.resizable(False, False)
-        self.console_dialog_window.title('Terminal')
+        self.console_dialog_window.title('Transfer Status')
 
         #Overide [x] button
         self.console_dialog_window.protocol('WM_DELETE_WINDOW', self.close_message)
@@ -461,10 +461,26 @@ class console_dialog:
         if(int(self.console_text.index('end').split('.')[0]) == 26):
             self.vbar.config(style = 'TScrollbar')
 
-    def set_current_file(self, file_name, transfer_type):
+    def set_current_file(self, file_name, transfer_type, local_path = '', remote_path = ''):
         self.current_file = file_name
         self.transfer_type = transfer_type
+        self.local_path = local_path
+        self.remote_path = remote_path
         self.enable_stop_button()
+
+    def progress(self, percentage):
+        if self.local_path and self.remote_path:
+            if self.transfer_type == 'upload':
+                self.console_text.delete('insert linestart', 'insert lineend')
+                self.console_text.insert('end', self.remote_path + '/' + self.current_file + ' saving from ' + self.local_path + '/' + self.current_file + ' ' + percentage)
+            elif self.transfer_type == 'download':
+                self.console_text.delete('insert linestart', 'insert lineend')
+                self.console_text.insert('end', self.local_path + '/' + self.current_file + ' saving from ' + self.remote_path + '/' + self.current_file + ' ' + percentage)
+        else:
+            self.console_text.delete('insert linestart', 'insert lineend')
+            self.console_text.insert('end', percentage)
+        if(int(self.console_text.index('end').split('.')[0]) == 26):
+            self.vbar.config(style = 'TScrollbar')
 
     def enable_stop_button(self):
         self.stop_button.config(state = NORMAL)

@@ -197,6 +197,7 @@ class sftp_controller:
         try:
             status_command(file_name, 'Uploading')
             self.ftp.put(file_name, file_name, callback = upload_progress)
+            status_command(file_name, 'Upload complete')
             status_command(None, 'newline')
         except Exception as e:
             if 'Transfer cancelled' in str(e):
@@ -248,6 +249,7 @@ class sftp_controller:
         try:
             status_command(ftp_file_name, 'Downloading')
             self.ftp.get(ftp_file_name, ftp_file_name, callback = download_progress)
+            status_command(ftp_file_name, 'Download complete')
             status_command(None, 'newline')
         except Exception as e:
             if 'Transfer cancelled' in str(e):

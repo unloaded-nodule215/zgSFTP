@@ -1204,13 +1204,13 @@ class app:
             if transfer_type == 'upload':
                 try:
                     self.ftpController.ftp.remove(file_name)
-                    self.console_window.insert_error('Remote file deleted.')
+                    self.console_window.insert_error('Remote file deleted: ' + self.ftpController.ftp.getcwd() + '/' + file_name)
                 except Exception:
                     self.console_window.insert_error('Failed to delete remote file!')
             elif transfer_type == 'download':
                 try:
                     os.remove(file_name)
-                    self.console_window.insert_error('Local file deleted.')
+                    self.console_window.insert_error('Local file deleted: ' + os.getcwd() + '/' + file_name)
                 except Exception:
                     self.console_window.insert_error('Failed to delete local file!')
 
@@ -1228,11 +1228,16 @@ class app:
             return
         #Set current file if starting upload or download
         if(status == 'Uploading'):
-            self.console_window.set_current_file(file_name, 'upload')
+            self.console_window.set_current_file(file_name, 'upload', os.getcwd(), self.ftpController.ftp.getcwd())
         elif(status == 'Downloading'):
-            self.console_window.set_current_file(file_name, 'download')
+            self.console_window.set_current_file(file_name, 'download', os.getcwd(), self.ftpController.ftp.getcwd())
         #Print to console
-        self.console_window.insert(status+': '+file_name)
+        if(status == 'Upload complete'):
+            self.console_window.insert(status + ': ' + self.ftpController.ftp.getcwd() + '/' + file_name + ' (Remote)')
+        elif(status == 'Download complete'):
+            self.console_window.insert(status + ': ' + os.getcwd() + '/' + file_name + ' (Local)')
+        else:
+            self.console_window.insert(status+': '+file_name)
 
 
 
