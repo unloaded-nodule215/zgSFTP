@@ -885,8 +885,13 @@ class app:
             thread_request_queue.join()
             with self.thread_lock:
                 return self.replace_flag
+        #File counter
+        file_count = 0
+        total_files = len(selected_file_indices)
         #Loop through selected items and upload them            
         for index in selected_file_indices:
+            file_count += 1
+            thread_request_queue.put(lambda fc=file_count, tf=total_files: self.console_window.insert('Current File Progress: ' + str(fc) + ' of ' + str(tf)))
             if(isfile(file_list[index])):
                 ftpController.upload_file(file_list[index], os.path.getsize(file_list[index]), progress, replace)
             else:
@@ -961,8 +966,13 @@ class app:
             thread_request_queue.join()
             with self.thread_lock:
                 return self.replace_flag
+        #File counter
+        file_count = 0
+        total_files = len(selected_file_indices)
         #Loop through selected items and download them
         for index in selected_file_indices:
+            file_count += 1
+            thread_request_queue.put(lambda fc=file_count, tf=total_files: self.console_window.insert('Current File Progress: ' + str(fc) + ' of ' + str(tf)))
         #Switch to parents 
             file_name = ftpController.cwd_parent(file_list[index])
             #If a file download it to the specified directory
@@ -1228,9 +1238,15 @@ class app:
             return
         #Set current file if starting upload or download
         if(status == 'Uploading'):
-            self.console_window.set_current_file(file_name, 'upload', os.getcwd(), self.ftpController.ftp.getcwd())
+            local_path = os.getcwd()
+            remote_path = self.ftpController.ftp.getcwd()
+            self.console_window.set_current_file(file_name, 'upload', local_path, remote_path)
+            self.console_window.insert(status + ': ' + local_path + '/' + file_name + ' -> ' + remote_path + '/' + file_name)
         elif(status == 'Downloading'):
-            self.console_window.set_current_file(file_name, 'download', os.getcwd(), self.ftpController.ftp.getcwd())
+            local_path = os.getcwd()
+            remote_path = self.ftpController.ftp.getcwd()
+            self.console_window.set_current_file(file_name, 'download', local_path, remote_path)
+            self.console_window.insert(status + ': ' + remote_path + '/' + file_name + ' -> ' + local_path + '/' + file_name)
         #Print to console
         if(status == 'Upload complete'):
             self.console_window.insert(status + ': ' + self.ftpController.ftp.getcwd() + '/' + file_name + ' (Remote)')
@@ -1242,7 +1258,7 @@ class app:
 
 
     def info(self):
-        self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v0.1.1', 'Copyright: zgSFTP (2026)\nCopyright: Vishnu Shankar (2018-2019)')
+        self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v0.1.3', 'Copyright: zgSFTP (2026)\nCopyright: Vishnu Shankar (2018-2019)')
 
 
 
