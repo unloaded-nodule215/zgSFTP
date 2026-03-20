@@ -25,6 +25,7 @@ import zgSFTP_FileDialogs as Filedialogs
 from transfer_queue import TransferQueue
 import platform
 import host_keys
+import zgSFTP_HostKeyMgmt as HostKeyMgmt
 if(platform.system() == 'Windows'):
     import ctypes
 
@@ -124,6 +125,10 @@ class app:
 
         #Variable to tell a thread weather to replace a file
         self.replace_flag = False
+
+        #Host key authentication variables
+        self.use_host_keys = BooleanVar(value = False)
+        self.selected_key = StringVar(value = '')
 
         #For thread syncrhoniztion
         self.thread_lock = threading.Lock()
@@ -282,6 +287,11 @@ class app:
         self.remember_settings = BooleanVar(value = False)
         self.remember_checkbox = ttk.Checkbutton(self.toolbar, text = 'Save Connection Info', variable = self.remember_settings, command = self.on_remember_settings_change)
         self.remember_checkbox.pack(side = 'left', padx = 5)
+        #Create manage host keys button
+        self.manage_host_keys_button = ttk.Button(self.toolbar, text = 'Manage Host Keys', command = self.open_host_key_manager)
+        self.manage_host_keys_button.pack(side = 'left', padx = 5)
+        #Bind use_host_keys variable change
+        self.use_host_keys.trace_add('write', lambda *args: self.on_use_host_keys_change())
         #Create label field for hostname
         self.label_hostname = ttk.Label(self.entry_bar, text = 'Host:')
         self.label_hostname.pack(side = 'left', padx = 2)
@@ -442,12 +452,25 @@ class app:
         
 
     def host_key_callback(self, host, port, key_type, fingerprint):
-        dialog = Filedialogs.host_key_dialog(self.master, 'New SSH Host', self.connect_icon, host, port, key_type, fingerprint)
+        dialog = HostKeyMgmt.host_key_dialog(self.master, 'New SSH Host', self.connect_icon, host, port, key_type, fingerprint)
         return dialog.result == True
 
     def connect_thread(self, ftpController, host, usrname, passwd, port):
+        pkey = None
+        if self.use_host_keys.get() == True:
+            key_name = self.selected_key.get()
+            if key_name:
+                pkey = HostKeyMgmt.load_key(key_name)
+                if pkey == 'PASSWORD_REQUIRED':
+                    thread_request_queue.put(lambda:self.unlock_status_bar())
+                    thread_request_queue.put(lambda:self.update_status_red('Selected key requires a passphrase. Please use password authentication or import an unprotected key.'))
+                    thread_request_queue.put(lambda:self.lock_status_bar())
+                    thread_request_queue.put(lambda:self.hostname_entry.focus())
+                    thread_request_queue.put(lambda:self.master.focus())
+                    return
+        
         try:
-            ftpController.connect_to(host, usrname, passwd, port, self.host_key_callback)
+            ftpController.connect_to(host, usrname, passwd, port, self.host_key_callback, pkey)
             thread_request_queue.put(lambda:self.unlock_status_bar())
             thread_request_queue.put(lambda:self.cont_wait())
             thread_request_queue.put(lambda:self.update_file_list())
@@ -456,7 +479,7 @@ class app:
         except Exception as e:
             thread_request_queue.put(lambda:self.unlock_status_bar())
             error_msg = str(e)
-            if 'Host key' in error_msg:
+            if 'Host key' in error_msg or 'Authentication failed' in error_msg:
                 thread_request_queue.put(lambda:self.update_status_red(error_msg))
             else:
                 thread_request_queue.put(lambda:self.update_status_red('Unable to connect, please check what you have entered.'))
@@ -1628,6 +1651,15 @@ class app:
 
     def info(self):
         self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v0.1.3', 'Copyright: zgSFTP (2026)\nCopyright: Vishnu Shankar (2018-2019)')
+
+    def open_host_key_manager(self):
+        HostKeyMgmt.HostKeyManager(self.master, self.info_icon, self.use_host_keys, self.selected_key)
+
+    def on_use_host_keys_change(self):
+        if self.use_host_keys.get() == True:
+            self.pass_entry.config(state = DISABLED)
+        else:
+            self.pass_entry.config(state = NORMAL)
 
     def known_hosts(self):
         self.known_hosts_window = Filedialogs.known_hosts_dialog(self.master, 'Known SSH Hosts', self.info_icon)

@@ -60,7 +60,7 @@ class sftp_controller:
             return False
         return True
 
-    def connect_to(self, Host, Username = ' ', Password = ' ', Port = 22, host_key_callback = None): 
+    def connect_to(self, Host, Username = ' ', Password = ' ', Port = 22, host_key_callback = None, pkey = None): 
         self.transport = paramiko.Transport((Host, Port))
         
         server_key = self.transport.get_remote_server_key()
@@ -79,7 +79,11 @@ class sftp_controller:
                 raise Exception('Host key not accepted by user')
             host_keys.save_known_host(Host, Port, key_type, key_blob, fingerprint)
         
-        self.transport.connect(username = Username, password = Password)
+        try:
+            self.transport.connect(username = Username, password = Password, pkey = pkey)
+        except paramiko.AuthenticationException:
+            raise Exception('Authentication failed: Invalid username or password')
+        
         self.ftp = paramiko_sftp_client.from_transport(self.transport)
         self.ftp.go_to_home(Username)
 
