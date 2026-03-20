@@ -24,28 +24,16 @@ import zgSFTP_ToolbarButton as ToolbarButton
 import zgSFTP_FileDialogs as Filedialogs
 from transfer_queue import TransferQueue
 import platform
+import host_keys
 if(platform.system() == 'Windows'):
     import ctypes
 
 
-def rot13(text):
-    result = ''
-    for char in text:
-        if 'a' <= char <= 'z':
-            result += chr((ord(char) - ord('a') + 13) % 26 + ord('a'))
-        elif 'A' <= char <= 'Z':
-            result += chr((ord(char) - ord('A') + 13) % 26 + ord('A'))
-        else:
-            result += char
-    return result
-
-
-def save_session(host, username, password, port):
+def save_session(host, username, port):
     config = configparser.ConfigParser()
     config['Connection'] = {
         'host': host,
         'username': username,
-        'password': rot13(password),
         'port': str(port)
     }
     with open('last-session.ini', 'w') as configfile:
@@ -61,7 +49,6 @@ def load_session():
                 return {
                     'host': config['Connection'].get('host', ''),
                     'username': config['Connection'].get('username', ''),
-                    'password': rot13(config['Connection'].get('password', '')),
                     'port': config['Connection'].get('port', '22')
                 }
         except Exception:
@@ -351,8 +338,10 @@ class app:
         self.master.bind('<Control-x>', self.clipboard_cut)
         self.master.bind('<Control-X>', self.clipboard_cut)
         self.master.bind('<Control-v>', self.clipboard_paste_thread_create)
-        self.master.bind('<Control-V>', self.clipboard_paste_thread_create) 
+        self.master.bind('<Control-V>', self.clipboard_paste_thread_create)
         self.master.bind('<Delete>', self.delete_window)
+        self.master.bind('<Control-k>', self.known_hosts)
+        self.master.bind('<Control-K>', self.known_hosts)
 
         #Bind events for canvas, this part of code tells what some of the functions do
         self.canvas.bind('<Button-4>', self.on_mouse_wheel)
@@ -415,7 +404,6 @@ class app:
         if session:
             self.hostname_entry.insert(0, session['host'])
             self.usrname_entry.insert(0, session['username'])
-            self.pass_entry.insert(0, session['password'])
             self.port_entry.delete(0, END)
             self.port_entry.insert(0, session['port'])
             self.remember_settings.set(True)
@@ -425,7 +413,6 @@ class app:
             save_session(
                 self.hostname_entry.get(),
                 self.usrname_entry.get(),
-                self.pass_entry.get(),
                 self.port_entry.get()
             )
 
@@ -454,21 +441,27 @@ class app:
         self.process_thread_requests()
         
 
+    def host_key_callback(self, host, port, key_type, fingerprint):
+        dialog = Filedialogs.host_key_dialog(self.master, 'New SSH Host', self.connect_icon, host, port, key_type, fingerprint)
+        return dialog.result == True
+
     def connect_thread(self, ftpController, host, usrname, passwd, port):
         try:
-            ftpController.connect_to(host, usrname, passwd, port)   
+            ftpController.connect_to(host, usrname, passwd, port, self.host_key_callback)
             thread_request_queue.put(lambda:self.unlock_status_bar())
-            thread_request_queue.put(lambda:self.cont_wait())         
+            thread_request_queue.put(lambda:self.cont_wait())
             thread_request_queue.put(lambda:self.update_file_list())
             thread_request_queue.put(lambda:self.save_current_session())
             thread_request_queue.put(lambda:self.update_status(message = 'Connected.'))
-        except Exception:
+        except Exception as e:
             thread_request_queue.put(lambda:self.unlock_status_bar())
-            thread_request_queue.put(lambda:self.update_status_red('Unable to connect, please check what you have entered.'))
-            #Make sure unable to connect message stays on status bar
+            error_msg = str(e)
+            if 'Host key' in error_msg:
+                thread_request_queue.put(lambda:self.update_status_red(error_msg))
+            else:
+                thread_request_queue.put(lambda:self.update_status_red('Unable to connect, please check what you have entered.'))
             thread_request_queue.put(lambda:self.lock_status_bar())
-        #Need to focus on the main window and the entry due to a bug in ttk/tkinter (entries don't focis properly after creating and destroying windowless messagebox dialog)  
-        thread_request_queue.put(lambda:self.hostname_entry.focus()) 
+        thread_request_queue.put(lambda:self.hostname_entry.focus())
         thread_request_queue.put(lambda:self.master.focus())    
 
 
@@ -1635,6 +1628,9 @@ class app:
 
     def info(self):
         self.info_window = Filedialogs.about_dialog(self.master, 'About', self.zgSFTP_icon, 'zgSFTP v0.1.3', 'Copyright: zgSFTP (2026)\nCopyright: Vishnu Shankar (2018-2019)')
+
+    def known_hosts(self):
+        self.known_hosts_window = Filedialogs.known_hosts_dialog(self.master, 'Known SSH Hosts', self.info_icon)
 
 
 
