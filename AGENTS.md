@@ -3,7 +3,7 @@
 ## Project Overview
 zgSFTP is a Python 3 SFTP client GUI application built with tkinter. It supports file operations (upload, download, copy, move, search, delete) on Linux, Windows, and macOS.
 
-**Version**: 0.1.0  
+**Version**: 0.1.3  
 **Copyright**: zgSFTP (2026), Vishnu Shankar (2018-2019)  
 **Supported Platforms**: Linux, Windows 11, macOS
 
@@ -14,17 +14,18 @@ zgSFTP is a Python 3 SFTP client GUI application built with tkinter. It supports
 python3 zgSFTP.py
 
 # Windows (after installing dependencies)
-python zgSFTP.pyw
+python zgSFTP.py
 ```
 
 ## Installing Dependencies
 
 ```bash
-python3 install_dependencies.py
+pip install -r requirements.txt
 ```
 
 Required packages:
 - `paramiko` - SFTP connections
+- `psutil` - Process and system utilities
 - `tkinterdnd2` - Drag and drop support
 
 ## Build/Lint/Test Commands
@@ -173,11 +174,10 @@ os.chdir(dname)
 
 ### Main Components
 - `zgSFTP.py` - Main application window and GUI logic
-- `SFTP_controller.py` - SFTP protocol implementation (paramiko)
+- `zgSFTP_Controller.py` - SFTP protocol implementation (paramiko)
 - `zgSFTP_FileDialogs.py` - Custom dialogs (connect, search, properties, etc.)
-- `TkDND_wrapper.py` - Drag-and-drop support
 - `zgSFTP_ToolbarButton.py` / `zgSFTP_PaneButton.py` - Custom button widgets
-- `drive_detect.py` - Mount point detection
+- `zgSFTP_DriveDetect.py` - Mount point detection
 
 ### Controller Pattern
 The `sftp_controller` class provides the SFTP interface:
@@ -202,7 +202,7 @@ File transfers use a `console_dialog` class that shows progress:
 4. Use `ttk` widgets for consistent styling
 
 ### Adding a File Operation
-1. Implement in `SFTP_controller`
+1. Implement in `zgSFTP_Controller`
 2. Add GUI callback in `zgSFTP.py`
 3. Use threading for long-running operations
 4. Update status bar for user feedback
@@ -216,4 +216,4 @@ File transfers use a `console_dialog` class that shows progress:
 
 ## Known Issues
 - Application appears blurry with DPI scaling enabled
-- Root directory search does not work
+- Vibe coded AI slop bugs likely exist
