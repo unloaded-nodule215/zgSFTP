@@ -394,6 +394,11 @@ class console_dialog:
         self.pad_frame.pack(fill = BOTH, expand = True, pady = 3, padx = 5)
         self.text_frame = ttk.Frame(self.pad_frame)
         self.text_frame.pack(fill = BOTH, expand = True, pady = 1, padx = 1)
+        #Create progress bar frame
+        self.progress_frame = ttk.Frame(self.console_dialog_window)
+        self.progress_frame.pack(fill = X, pady = 3, padx = 5)
+        self.progress_bar = Canvas(self.progress_frame, height = 30, relief = 'solid', highlightthickness=1, bg='white')
+        self.progress_bar.pack(fill = X, padx = 5, pady = 2)
         self.button_frame = ttk.Frame(self.console_dialog_window)
         self.button_frame.pack(fill = X)
 
@@ -430,7 +435,7 @@ class console_dialog:
 
         #Center the window
         if(platform.system() == 'Windows'):
-            center_window(master, self.console_dialog_window, 343, 252)
+            center_window(master, self.console_dialog_window, 620, 320)
         else:
             center_window(master, self.console_dialog_window)
 
@@ -456,10 +461,8 @@ class console_dialog:
             self.vbar.config(style = 'TScrollbar')
 
     def progress(self, percentage):
-        self.console_text.delete('insert linestart', 'insert lineend')
-        self.console_text.insert('end', percentage)
-        if(int(self.console_text.index('end').split('.')[0]) == 26):
-            self.vbar.config(style = 'TScrollbar')
+        #Update progress bar instead of text
+        self.update_progress_bar(float(percentage.replace('%', '')))
 
     def set_current_file(self, file_name, transfer_type, local_path = '', remote_path = ''):
         self.current_file = file_name
@@ -467,20 +470,36 @@ class console_dialog:
         self.local_path = local_path
         self.remote_path = remote_path
         self.enable_stop_button()
+        self.update_progress_bar(0)
 
-    def progress(self, percentage):
-        if self.local_path and self.remote_path:
-            if self.transfer_type == 'upload':
-                self.console_text.delete('insert linestart', 'insert lineend')
-                self.console_text.insert('end', self.remote_path + '/' + self.current_file + ' saving from ' + self.local_path + '/' + self.current_file + ' ' + percentage)
-            elif self.transfer_type == 'download':
-                self.console_text.delete('insert linestart', 'insert lineend')
-                self.console_text.insert('end', self.local_path + '/' + self.current_file + ' saving from ' + self.remote_path + '/' + self.current_file + ' ' + percentage)
+    def update_progress_bar(self, percentage):
+        #Clear progress bar
+        self.progress_bar.delete('all')
+        
+        #Get canvas dimensions
+        width = self.progress_bar.winfo_width()
+        if width == 0:
+            width = 600
+        height = 30
+        fill_width = int(width * percentage / 100)
+        
+        #Draw progress bar background
+        self.progress_bar.create_rectangle(0, 0, width, height, fill='lightgray', outline='gray')
+        
+        #Draw fill
+        if fill_width > 0:
+            self.progress_bar.create_rectangle(0, 0, fill_width, height, fill='green', outline='darkgreen')
+        
+        #Calculate text color based on background
+        if fill_width < width / 2:
+            text_color = 'black'
         else:
-            self.console_text.delete('insert linestart', 'insert lineend')
-            self.console_text.insert('end', percentage)
-        if(int(self.console_text.index('end').split('.')[0]) == 26):
-            self.vbar.config(style = 'TScrollbar')
+            text_color = 'white'
+        
+        #Draw percentage text centered
+        if self.current_file:
+            text = self.current_file + ' ' + str(round(percentage)) + '%'
+            self.progress_bar.create_text(width / 2, height / 2, text=text, fill=text_color, font=('TkDefaultFont', 10, 'bold'))
 
     def enable_stop_button(self):
         self.stop_button.config(state = NORMAL)

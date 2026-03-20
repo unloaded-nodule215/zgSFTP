@@ -281,7 +281,7 @@ class app:
         self.paste_button.pack(side = 'left', padx = 5)
         #Create remember settings checkbox
         self.remember_settings = BooleanVar(value = False)
-        self.remember_checkbox = ttk.Checkbutton(self.toolbar, text = 'Remember settings', variable = self.remember_settings, command = self.on_remember_settings_change)
+        self.remember_checkbox = ttk.Checkbutton(self.toolbar, text = 'Save Connection Info', variable = self.remember_settings, command = self.on_remember_settings_change)
         self.remember_checkbox.pack(side = 'left', padx = 5)
         #Create label field for hostname
         self.label_hostname = ttk.Label(self.entry_bar, text = 'Host:')
