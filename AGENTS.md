@@ -25,41 +25,60 @@ python3 install_dependencies.py
 
 Required packages:
 - `paramiko` - SFTP connections
+- `tkinterdnd2` - Drag and drop support
 
 ## Build/Lint/Test Commands
 
 **No formal test suite exists.** The project has no automated tests, linters, or type checkers configured.
 
-Manual testing approach:
+### Testing
+Since there are no formal tests, manual testing is required:
+
 1. Run the application: `python3 zgSFTP.py`
 2. Test SFTP connections to a test server
 3. Verify file operations (upload, download, copy, move, delete, search)
 4. Test transfer cancellation functionality
 
+### Build Commands
+The project does not use a build system. Run directly with Python 3.
+
+### Lint/Type Check Commands
+No linters or type checkers are configured. The codebase uses:
+- Python 3 (Python 3.14 compatible)
+- No type hints (maintains consistency with existing codebase)
+
 ## Code Style Guidelines
 
 ### Imports
-- Standard library imports first (alphabetically grouped)
-- Third-party imports after standard library
-- Local imports last (relative to project root)
+Order imports as follows:
+1. Standard library imports (alphabetically grouped)
+2. Third-party imports (alphabetically grouped)
+3. Local imports (relative to project root, alphabetically)
 
 ```python
 import os
 from os.path import isfile, join
 import threading
 import queue
+import configparser
+from urllib.parse import unquote
 from tkinter import *
 from tkinter import font
 from tkinter import ttk
-import platform
+from tkinter import PhotoImage
+from tkinter import messagebox
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from SFTP_controller import *
+import zgSFTP_ToolbarButton as ToolbarButton
+import zgSFTP_FileDialogs as Filedialogs
+import platform
 ```
 
 ### Formatting
 - **Indentation**: 4 spaces (no tabs)
 - **Line length**: Flexible, but prefer ~80-100 characters
 - **Blank lines**: Use to separate logical sections within functions
-- **Spacing**: Space around operators (`=` `+` `-` `==`)
+- **Spacing**: Space around operators (`=`, `+`, `-`, `==`)
 
 ```python
 # Good
