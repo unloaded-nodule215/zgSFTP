@@ -9,13 +9,14 @@ from os.path import isfile, join
 import platform
 import psutil
 import sys
+from urllib.parse import unquote
 import zgSFTP_PaneButton as PaneButton
 from tkinter import *
 from tkinter import font
 from tkinter import ttk
 from tkinter import PhotoImage
 from tkinter import messagebox
-from TkDND_wrapper import *
+from tkinterdnd2 import DND_FILES
 if(platform.system() == 'Windows'):
     import win32api
     import win32con
@@ -714,15 +715,14 @@ class open_file_dialog:
         self.vbar.bind('<Motion>', self.stop_highlight) 
         self.button_frame.bind('<Motion>', self.stop_highlight)
 
-        #Code for handling file/folder drag and drop, uses TkDND_wrapper.py
-        #See link: https://mail.python.org/pipermail/tkinter-discuss/2005-July/000476.html
-        #DND may not be available on all platforms (e.g., Apple Silicon macOS)
+        #Code for handling file/folder drag and drop, uses tkinterdnd2
+        #See link: https://github.com/Eliav2/tkinterdnd2
         if(directory_mode == True):
             try:
-                self.dnd = TkDND(master)
-                self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<Drop>', self.handle_dnd, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
-                self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragEnter>', self.show_dnd_icon, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
-                self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragLeave>', lambda action, actions, type, win, X, Y, x, y, data:self.draw_icons(), ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
+                self.canvas_frame.drop_target_register(DND_FILES)
+                self.canvas_frame.dnd_bind('<<Drop>>', self.handle_dnd)
+                self.canvas_frame.dnd_bind('<<DragEnter>>', self.show_dnd_icon)
+                self.canvas_frame.dnd_bind('<<DragLeave>>', lambda e: self.draw_icons())
             except Exception:
                 pass  # DND not available, continue without it
 
@@ -756,12 +756,42 @@ class open_file_dialog:
                     self.max_len = len(file)
                     self.max_len_name = file
 
-    def handle_dnd(self, action, actions, type, win, X, Y, x, y, data):
+    def handle_dnd(self, event):
         #Deselect everything
         self.deselect_everything()
-        #Get path from text field
-        dir_path = self.dnd.parse_uri_list(data)[0]
-        #Chack validity and change directory
+        #Get path from event data - parse Tcl list format with URL-encoded URIs
+        uri_list = event.data
+        #Parse first item from Tcl list
+        dir_path = ''
+        i = 0
+        if i < len(uri_list):
+            if uri_list[i] == '{':
+                #Start of braced item
+                j = i + 1
+                brace_count = 1
+                while j < len(uri_list) and brace_count > 0:
+                    if uri_list[j] == '{':
+                        brace_count += 1
+                    elif uri_list[j] == '}':
+                        brace_count -= 1
+                    j += 1
+                item = uri_list[i+1:j-1]
+            else:
+                #Space-separated item
+                j = i
+                while j < len(uri_list) and uri_list[j] != ' ':
+                    j += 1
+                item = uri_list[i:j]
+            #Decode URL-encoded URI and remove file:// prefix
+            dir_path = unquote(item)
+            if dir_path.startswith('file://'):
+                dir_path = dir_path[7:]
+            #Handle Windows drive letters and leading slash
+            if dir_path.startswith('/') and len(dir_path) > 2 and dir_path[1] == ':':
+                dir_path = dir_path[1:]
+            elif dir_path.startswith('/'):
+                dir_path = dir_path[1:]
+        #Check validity and change directory
         if os.path.isdir(dir_path): os.chdir(dir_path)
         #Change directory text
         self.directory_text.delete(0, 'end')
@@ -770,7 +800,7 @@ class open_file_dialog:
         self.update_file_list()
         self.draw_icons()        
 
-    def show_dnd_icon(self, action, actions, type, win, X, Y, x, y, data):
+    def show_dnd_icon(self, event):
         self.deselect_everything()
         self.canvas.delete("all")
         self.canvas.create_image(self.canvas_width/2, self.canvas_height/2, image = self.dnd_glow_icon)        

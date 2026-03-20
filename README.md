@@ -21,7 +21,12 @@ The only option currently is to run from source. Simpler options are on the rada
 + Run: `python zgSFTP.py` 
 
 #### MacOS:
-+ Currently broken due to no TkDND support for Apple Silicon. Replacement on the way. Possibly.
++ Tested with Python 3.14 on Apple Silicon. Full drag-and-drop support via tkinterdnd2.
++ Install Python 3.14.x from https://www.python.org/downloads/mac-osx/
++ Install git and clone this repo, or download the zip and unzip to a folder of your choice.
++ Open a terminal and navigate to your zgSFTP source folder.
++ Run: `pip3 install -r requirements.txt` and wait for it to finish. (Optional: Create a venv first)
++ Run: `python3 zgSFTP.py`
 
 #### Linux:
 + Use git to clone this repo

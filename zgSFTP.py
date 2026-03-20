@@ -4,7 +4,7 @@
 #
 #    List of Tk extensions used:
 #        Arc theme (modified to red color and more styles were added) : https://wiki.tcl.tk/48689
-#        TkDND : https://sourceforge.net/projects/tkdnd/
+#        tkinterdnd2 : https://github.com/Eliav2/tkinterdnd2
 #
 
 import os
@@ -12,13 +12,14 @@ from os.path import isfile, join
 import threading
 import queue
 import configparser
+from urllib.parse import unquote
 from tkinter import *
 from tkinter import font
 from tkinter import ttk
 from tkinter import PhotoImage
 from tkinter import messagebox
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from SFTP_controller import *
-from TkDND_wrapper import *
 import zgSFTP_ToolbarButton as ToolbarButton
 import zgSFTP_FileDialogs as Filedialogs
 import platform
@@ -175,18 +176,14 @@ class app:
         self.canvas_frame = ttk.Frame(self.pad_frame, relief = 'groove', border = 1)
         self.canvas_frame.pack(fill = BOTH, expand = True, padx = 5, pady = 3)
 
-        #Code for handling file/folder drag and drop, uses TkDND_wrapper.py
-        #See link: https://mail.python.org/pipermail/tkinter-discuss/2005-July/000476.html
-        #DND may not be available on all platforms (e.g., Apple Silicon macOS)
+        #Code for handling file/folder drag and drop, uses tkinterdnd2
+        #See link: https://github.com/Eliav2/tkinterdnd2
         self.dnd_available = False
         try:
-            self.dnd = TkDND(master)
-            self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<Drop>', self.handle_dnd, 
-                                ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
-            self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragEnter>', self.show_dnd_icon, 
-                                ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
-            self.dnd.bindtarget(self.canvas_frame, 'text/uri-list', '<DragLeave>', lambda action, actions, type, win,
-                                X, Y, x, y, data:self.draw_icons(), ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y','%D'))
+            self.canvas_frame.drop_target_register(DND_FILES)
+            self.canvas_frame.dnd_bind('<<Drop>>', self.handle_dnd)
+            self.canvas_frame.dnd_bind('<<DragEnter>>', self.show_dnd_icon)
+            self.canvas_frame.dnd_bind('<<DragLeave>>', lambda e: self.draw_icons())
             self.dnd_available = True
         except Exception:
             pass  # DND not available, continue without it
@@ -682,14 +679,50 @@ class app:
         #Tell how many files are present and how many are selected in the status bar
         self.update_status(event, 'Total no. of items: ' + str(len(self.file_list)) + '   Selected: ' + str(len(self.selected_file_indices)))
 
-    def handle_dnd(self, action, actions, type, win, X, Y, x, y, data):
+    def handle_dnd(self, event):
         #If there is another child window, disable dnd
         if(len(self.master.children) != 4): return
         del self.dnd_file_list[:]
-        self.dnd_file_list = self.dnd.parse_uri_list(data)
+        #Parse URI list from event data
+        #tkinterdnd2 passes Tcl list format with URL-encoded file URIs
+        uri_list = event.data
+        #Parse Tcl list: extract items in braces or space-separated
+        file_list = []
+        i = 0
+        while i < len(uri_list):
+            if uri_list[i] == '{':
+                #Start of braced item
+                j = i + 1
+                brace_count = 1
+                while j < len(uri_list) and brace_count > 0:
+                    if uri_list[j] == '{':
+                        brace_count += 1
+                    elif uri_list[j] == '}':
+                        brace_count -= 1
+                    j += 1
+                item = uri_list[i+1:j-1]
+            else:
+                #Space-separated item
+                j = i
+                while j < len(uri_list) and uri_list[j] != ' ':
+                    j += 1
+                item = uri_list[i:j]
+                i = j
+                continue
+            #Decode URL-encoded URI and remove file:// prefix
+            decoded = unquote(item)
+            if decoded.startswith('file://'):
+                decoded = decoded[7:]
+            #Handle Windows drive letters (file:///C:/path) - remove leading slash after drive letter
+            if decoded.startswith('/') and len(decoded) > 2 and decoded[1] == ':':
+                decoded = decoded[1:]
+            # Unix paths keep their leading / for os.chdir() to work
+            file_list.append(decoded)
+            i = j
+        self.dnd_file_list = file_list
         self.upload_thread_dnd()
 
-    def show_dnd_icon(self, action, actions, type, win, X, Y, x, y, data):
+    def show_dnd_icon(self, event):
         #If there is another child window, disable dnd
         if(len(self.master.children) != 4): return
         self.deselect_everything()
@@ -1332,16 +1365,13 @@ class app:
 #Tell windows not to DPI scale this application
 if(platform.system() == 'Windows' and platform.release() != '7'):
     ctypes.windll.shcore.SetProcessDpiAwareness(2)
-#Create root window
-root = Tk()
-#Include the theme and tkdnd libraries
+#Create root window with tkinterdnd2 support
+root = TkinterDnD.Tk()
+#Include the theme libraries
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 arc_theme_path = (dname+'/Theme')
-tkdnd_path = (dname+'/TkDND')
 root.tk.eval('lappend auto_path {%s}' % arc_theme_path)
-root.tk.eval('lappend auto_path {%s}' % tkdnd_path)
-root.tk.eval('package require tkdnd')
 #Queue for handling threads
 global thread_request_queue
 thread_request_queue = queue.Queue()
