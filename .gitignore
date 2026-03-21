@@ -5,3 +5,4 @@ copy_temps
 .directory
 last-session.ini
 .venv
+queue.ini
