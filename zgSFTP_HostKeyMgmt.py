@@ -68,12 +68,6 @@ def generate_key_pair(name, passphrase=None):
     
     # Serialize to OPENSSH format
     if passphrase:
-        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-        from cryptography.hazmat.backends import default_backend
-        import hashlib
-        import os as _os
-        
-        # For simplicity, use PKCS8 with encryption
         pem = crypto_key.private_bytes(
             serialization.Encoding.PEM,
             serialization.PrivateFormat.PKCS8,
@@ -92,10 +86,13 @@ def generate_key_pair(name, passphrase=None):
         os.chmod(private_key_path, 0o600)
     
     # Load into paramiko to get public key
-    if passphrase:
-        paramiko_key = paramiko.Ed25519Key.from_private_key_file(private_key_path, password=passphrase.encode())
-    else:
-        paramiko_key = paramiko.Ed25519Key.from_private_key_file(private_key_path)
+    try:
+        if passphrase:
+            paramiko_key = paramiko.PKey.from_private_key_file(private_key_path, password=passphrase.encode())
+        else:
+            paramiko_key = paramiko.Ed25519Key.from_private_key_file(private_key_path)
+    except Exception as e:
+        return False, f'Failed to load generated key: {str(e)}'
     
     # Write public key
     with open(public_key_path, 'w') as f:
@@ -120,18 +117,31 @@ def import_key(name, private_key_path, passphrase=None):
         with open(private_key_path, 'rb') as f:
             key_data = f.read()
         
-        # Try to load as Ed25519 key first
-        try:
-            if passphrase:
-                key = paramiko.Ed25519Key.from_private_key_file(private_key_path, password=passphrase.encode())
-            else:
-                key = paramiko.Ed25519Key.from_private_key_file(private_key_path)
-        except Exception:
-            # If that fails, try with the generic PKey
-            if passphrase:
-                key = paramiko.PKey.from_private_key_file(private_key_path, password=passphrase.encode())
-            else:
-                key = paramiko.PKey.from_private_key_file(private_key_path)
+        # Detect key type from file content
+        key_data_str = key_data.decode('utf-8', errors='ignore')
+        detected_type = 'UNKNOWN'
+        if 'ssh-ed25519' in key_data_str:
+            detected_type = 'ED25519'
+        elif 'ssh-rsa' in key_data_str:
+            detected_type = 'RSA'
+        elif 'ssh-dss' in key_data_str:
+            detected_type = 'DSA'
+        elif 'ssh-ec' in key_data_str or 'ecdsa' in key_data_str.lower():
+            detected_type = 'ECDSA'
+        
+        # Try to load key using specific key types
+        key = None
+        password = passphrase.encode() if passphrase else None
+        
+        for key_class in [paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey]:
+            try:
+                key = key_class.from_private_key_file(private_key_path, password=password)
+                break
+            except Exception:
+                continue
+        
+        if key is None:
+            return False, 'Failed to load key'
         
         # Write the key data directly (preserve original format)
         with open(dest_private_path, 'wb') as f:
@@ -294,20 +304,45 @@ class HostKeyManager:
 
         keys = list_local_keys()
         for key_info in keys:
+            key_type = 'UNKNOWN'
+            fingerprint = 'N/A'
+            
+            # Detect key type from public key file
             try:
-                # Try Ed25519 first
-                try:
-                    key = paramiko.Ed25519Key.from_private_key_file(key_info['private_path'])
-                except Exception:
-                    key = paramiko.PKey.from_private_key_file(key_info['private_path'])
-                key_type = key.get_name().upper()
-                fingerprint = key.get_fingerprint().hex()
-            except paramiko.PasswordRequiredException:
-                key_type = 'ED25519*'
-                fingerprint = '(protected)'
+                with open(key_info['public_path'], 'r') as f:
+                    public_key_content = f.read().strip()
+                    parts = public_key_content.split()
+                    if len(parts) >= 1:
+                        key_type = parts[0].upper().replace('SSH-', '')
             except Exception:
-                key_type = 'UNKNOWN'
-                fingerprint = 'N/A'
+                pass
+            
+            # Try to load private key to get fingerprint
+            password_required = False
+            try:
+                # Try specific key types first
+                key = None
+                for key_class in [paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey]:
+                    try:
+                        key = key_class.from_private_key_file(key_info['private_path'])
+                        break
+                    except paramiko.PasswordRequiredException:
+                        password_required = True
+                        break
+                    except Exception:
+                        continue
+                
+                if password_required:
+                    key_type = key_type + '*' if key_type != 'UNKNOWN' else 'KEY*'
+                    fingerprint = '(protected)'
+                elif key is None:
+                    pass  # Keep UNKNOWN/N/A
+                else:
+                    fingerprint = key.get_fingerprint().hex()
+                    if key_type == 'UNKNOWN':
+                        key_type = key.get_name().upper().replace('SSH-', '')
+            except Exception:
+                pass
 
             self.key_treeview.insert('', END, values=(key_info['name'], key_type, fingerprint))
 
