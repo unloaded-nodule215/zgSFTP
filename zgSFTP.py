@@ -1573,10 +1573,16 @@ class app:
         
         if result:
             # Clear pending queue
-            self.transfer_queue.clear_pending()
+            if self.transfer_queue is not None:
+                self.transfer_queue.clear_pending()
             self.queue_paused = False
             self.failed_retry_available = True
             self.failed_retry_attempted = False
+            if self.transfer_queue is not None:
+                self.transfer_queue.save_to_file()
+                self.queue_stats = self.transfer_queue.get_stats()
+            else:
+                self.queue_stats = {'pending': 0, 'completed': 0, 'failed': 0}
         else:
             # Keep queue paused for resume
             self.queue_paused = True
@@ -1584,15 +1590,13 @@ class app:
             self.failed_retry_attempted = False
             
             # Add interrupted file back to top of queue
-            if file_name:
+            if file_name and self.transfer_queue is not None:
                 # transfer_type is already 'file' or 'folder'
                 self.transfer_queue.enqueue_to_front(file_name, transfer_type)
-        
-        # Save queue to disk
-        self.transfer_queue.save_to_file()
-        
-        # Update stats
-        self.queue_stats = self.transfer_queue.get_stats()
+                self.transfer_queue.save_to_file()
+                self.queue_stats = self.transfer_queue.get_stats()
+            else:
+                self.queue_stats = {'pending': 0, 'completed': 0, 'failed': 0}
         
         # Update console window
         self.console_window.set_queue_paused(self.queue_paused)
