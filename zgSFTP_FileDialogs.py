@@ -369,7 +369,7 @@ class file_properties_dialog:
 
 class console_dialog:
 
-    def __init__(self, master, icon, destroy_func, stop_callback = None):                
+    def __init__(self, master, icon, destroy_func, stop_callback = None, transfer_queue = None):                
         #Save reference to destroy function
         self.destroy_function = destroy_func
 
@@ -378,6 +378,9 @@ class console_dialog:
 
         #Save reference to icon
         self.icon = icon
+
+        #Save reference to transfer queue
+        self.transfer_queue = transfer_queue
 
         #Track current transfer
         self.current_file = None
@@ -410,11 +413,35 @@ class console_dialog:
         self.label_frame.pack(fill = X)
         self.pad_pad_frame = ttk.Frame(self.console_dialog_window)
         self.pad_pad_frame.pack(fill = BOTH, expand = True)
-        self.pad_frame = ttk.Frame(self.pad_pad_frame, relief = 'groove')
-        self.pad_frame.pack(fill = BOTH, expand = True, pady = 3, padx = 5)
-        self.text_frame = ttk.Frame(self.pad_frame)
-        self.text_frame.pack(fill = BOTH, expand = True, pady = 1, padx = 1)
-        #Create progress bar frame
+        
+        #Main content area with text and queue display side by side using grid
+        self.main_content_frame = ttk.Frame(self.pad_pad_frame)
+        self.main_content_frame.pack(fill = BOTH, expand = True, pady = 3, padx = 5)
+        
+        #Console text on the left
+        self.text_frame = ttk.Frame(self.main_content_frame)
+        self.text_frame.grid(row = 0, column = 0, sticky = 'nsew')
+        
+        #Queue display on the right
+        self.queue_display_frame = ttk.Frame(self.main_content_frame, relief = 'groove', border = 1)
+        self.queue_display_frame.grid(row = 0, column = 1, sticky = 'nsew', padx = (5, 0))
+        self.main_content_frame.columnconfigure(0, weight = 1)
+        self.main_content_frame.columnconfigure(1, weight = 0)
+        
+        self.queue_display_label = ttk.Label(self.queue_display_frame, text = 'Queue (Top to Bottom)', anchor = 'center')
+        self.queue_display_label.pack(fill = X, pady = (5, 0))
+        
+        #Queue text widget
+        self.queue_text = Text(self.queue_display_frame, width = 25, height = 15, relief = 'flat', highlightthickness=0, background = 'white', state = DISABLED)
+        self.queue_text.pack(fill = BOTH, expand = True, pady = 5, padx = 5)
+        
+        #Queue scrollbar
+        self.queue_vbar = ttk.Scrollbar(self.queue_display_frame, orient=VERTICAL, style = 'Vertical.TScrollbar')
+        self.queue_vbar.pack(side=RIGHT,fill=Y)
+        self.queue_text.config(yscrollcommand = self.queue_vbar.set)
+        self.queue_vbar.config(command = self.queue_text.yview)
+        
+        #Progress bar frame
         self.progress_frame = ttk.Frame(self.console_dialog_window)
         self.progress_frame.pack(fill = X, pady = 3, padx = 5)
         self.progress_bar = Canvas(self.progress_frame, height = 30, relief = 'solid', highlightthickness=1, bg='white')
@@ -571,6 +598,10 @@ class console_dialog:
             self.stop_button.config(state = NORMAL)
             self.clear_button.config(state = NORMAL)
 
+    def set_transfer_queue(self, transfer_queue):
+        """Update transfer queue reference for queue display and operations."""
+        self.transfer_queue = transfer_queue
+    
     def set_queue_stats(self, pending, completed, failed):
         """Update queue statistics display."""
         self.queue_stats = {
@@ -588,6 +619,40 @@ class console_dialog:
             text = '0/0 (0%): Complete'
             
         self.queue_status_label.config(text=text)
+        
+        # Update queue display if transfer_queue is available
+        if self.transfer_queue:
+            self.update_queue_display()
+
+    def update_queue_display(self):
+        """Update the queue display on the right side of the window."""
+        try:
+            # Get all queue items
+            queue_items = self.transfer_queue.get_queue_items() if self.transfer_queue else []
+            
+            # Clear current display
+            self.queue_text.config(state = NORMAL)
+            self.queue_text.delete('1.0', END)
+            
+            if queue_items:
+                # Display up to 20 items
+                display_items = queue_items[:20]
+                for i, item in enumerate(display_items):
+                    path = item['path']
+                    # Get just the filename from path
+                    filename = os.path.basename(path) if path else path
+                    self.queue_text.insert(END, f'{i+1}. {filename}\n')
+                
+                # Show count of remaining items if more than 20
+                if len(queue_items) > 20:
+                    remaining = len(queue_items) - 20
+                    self.queue_text.insert(END, f'\n... and {remaining} more item(s)')
+            else:
+                self.queue_text.insert(END, 'No pending items')
+            
+            self.queue_text.config(state = DISABLED)
+        except Exception:
+            pass
 
     def resume_queue(self):
         """Resume the paused queue."""
@@ -605,14 +670,18 @@ class console_dialog:
             'Are you sure you want to clear the pending queue?')
         
         if result:
-            # Clear pending items
+            # Clear pending items in memory
             self.queue_stats['pending'] = 0
             self.stop_button.config(state = NORMAL)
             self.resume_button.config(state = DISABLED)
             self.clear_button.config(state = NORMAL)
             
             # Update label
-            ttk.Label(self.label_frame, text='Queue cleared', anchor='w').pack(fill=X, side='left', pady=3)
+            self.queue_status_label.config(text='Queue cleared')
+            
+            # Actually clear queue.ini from disk (blank file)
+            if self.transfer_queue:
+                self.transfer_queue.clear_pending()
 
     def close_message(self):
         if(self.closable == True):

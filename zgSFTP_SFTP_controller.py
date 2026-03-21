@@ -8,6 +8,7 @@ import paramiko
 import tempfile
 import secrets
 import threading
+import re
 import zgSFTP_host_keys
 import base64
 
@@ -108,7 +109,6 @@ class sftp_controller:
         self.max_len_name = ''
         file_list = []
         for x in detailed_file_list:
-            #Remove details and append only the file name
             name = ' '.join(x.split()[8:])
             file_list.append(name)
             if(len(name) > self.max_len):

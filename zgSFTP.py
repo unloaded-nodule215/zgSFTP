@@ -1035,7 +1035,7 @@ class app:
         return True
 
     def upload_thread(self):
-        #Create console/terminal window
+        #Create console/terminal window (without transfer_queue initially)
         self.create_progress_window()
         #Destroy upload window
         self.upload_dialog.destroy()
@@ -1054,6 +1054,9 @@ class app:
             self.progress('Failed to prepare queue', 'Error')
             self.console_window.enable_close_button()
             return
+        
+        # Pass transfer_queue to console dialog for queue display
+        self.console_window.set_transfer_queue(self.transfer_queue)
         
         self.transfer_stage = 'preparing'
         #start thread
@@ -1202,7 +1205,7 @@ class app:
     def download_thread(self):
         #Destroy download window
         self.download_dialog.destroy()
-        #Create console/terminal window
+        #Create console/terminal window (without transfer_queue initially)
         self.create_progress_window()
         #Set status
         self.update_status('Preparing queue...')
@@ -1219,6 +1222,9 @@ class app:
             self.progress('Failed to prepare queue', 'Error')
             self.console_window.enable_close_button()
             return
+        
+        # Pass transfer_queue to console dialog for queue display
+        self.console_window.set_transfer_queue(self.transfer_queue)
         
         self.transfer_stage = 'preparing'
         #Create new thread for downloading
@@ -1544,7 +1550,7 @@ class app:
             self.master.after(5, self.process_thread_requests)
 
     def create_progress_window(self):
-        self.console_window = Filedialogs.console_dialog(self.master, self.console_icon, self.reset_replace, self.handle_stop_transfer)
+        self.console_window = Filedialogs.console_dialog(self.master, self.console_icon, self.reset_replace, self.handle_stop_transfer, self.transfer_queue)
 
     def handle_stop_transfer(self, file_name, transfer_type):
         # Check if this is a resume signal (called with None, None)

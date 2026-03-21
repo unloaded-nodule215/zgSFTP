@@ -245,8 +245,9 @@ class TransferQueue:
             if not self._queue_items:
                 return None
             
-            # Get next item (sorted by priority, then path)
-            self._queue_items.sort(key=lambda x: (x['priority'], x['path']))
+            # Get next item (sorted by type then path alphabetically)
+            # Folders first, then files, both alphabetically by path
+            self._queue_items.sort(key=lambda x: (0 if x['type'] == 'folder' else 1, x['path']))
             item = self._queue_items.pop(0)
             
             # Update stats

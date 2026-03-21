@@ -79,7 +79,7 @@ from tkinter import ttk
 from tkinter import PhotoImage
 from tkinter import messagebox
 from tkinterdnd2 import DND_FILES, TkinterDnD
-from SFTP_controller import *
+from zgSFTP_SFTP_controller import *
 import zgSFTP_ToolbarButton as ToolbarButton
 import zgSFTP_FileDialogs as Filedialogs
 import platform
@@ -105,7 +105,7 @@ master.minsize(width = 860, height = 560)
 - **Methods/Functions**: `snake_case` (e.g., `connect_to`, `get_file_list`, `toggle_hidden_files`)
 - **Instance variables**: `snake_case` (e.g., `self.file_list`, `self.max_width`)
 - **Constants**: Not commonly used in this codebase
-- **Files**: `snake_case.py` (e.g., `SFTP_controller.py`, `zgSFTP_FileDialogs.py`)
+- **Files**: `snake_case.py` - All Python files must start with `zgSFTP_` prefix (e.g., `zgSFTP_SFTP_controller.py`, `zgSFTP_FileDialogs.py`)
 
 ### Type Hints
 - **Not used** in this codebase
@@ -184,15 +184,15 @@ os.chdir(dname)
 
 ### Main Components
 - `zgSFTP.py` - Main application window and GUI logic
-- `SFTP_controller.py` - SFTP protocol implementation (paramiko)
+- `zgSFTP_SFTP_controller.py` - SFTP protocol implementation (paramiko)
 - `zgSFTP_FileDialogs.py` - Custom dialogs (connect, search, properties, etc.)
 - `zgSFTP_ToolbarButton.py` / `zgSFTP_PaneButton.py` - Custom button widgets
 - `zgSFTP_HostKeyMgmt.py` - Host key management dialog
-- `host_keys.py` - SSH host key storage and verification
-- `drive_detect.py` - Mount point detection
+- `zgSFTP_host_keys.py` - SSH host key storage and verification
+- `zgSFTP_drive_detect.py` - Mount point detection
 
 ### Controller Pattern
-The `sftp_controller` class provides the SFTP interface:
+The `sftp_controller` class (in `zgSFTP_SFTP_controller.py`) provides the SFTP interface:
 - `connect_to(host, username, password, port)`
 - `get_file_list()`, `get_detailed_file_list()`
 - `upload_file()`, `download_file()`
