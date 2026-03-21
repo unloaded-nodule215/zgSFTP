@@ -25,6 +25,16 @@ def get_host_key_id(host, port):
     return f"{host}:{port}"
 
 
+def get_host_key_id_parts(host_key_id):
+    """Split host_key_id back into host and port."""
+    parts = host_key_id.split(':')
+    if len(parts) >= 2:
+        port = parts[-1]
+        host = ':'.join(parts[:-1])
+        return host, port
+    return host_key_id, '22'
+
+
 def hash_fingerprint(fingerprint):
     """Hash fingerprint for secure storage."""
     return hashlib.sha256(fingerprint.encode()).hexdigest()
@@ -49,7 +59,7 @@ def load_known_hosts():
                 if not line or line.startswith('#'):
                     continue
                 
-                parts = line.split(':')
+                parts = line.split('||')
                 if len(parts) >= 4:
                     host_key_id = parts[0]
                     key_type = parts[1]
@@ -74,7 +84,7 @@ def save_known_host(host, port, key_type, key, fingerprint):
     
     try:
         with open(known_hosts_path, 'a') as f:
-            f.write(f"{host_key_id}:{key_type}:{key}:{hash_fingerprint(fingerprint)}\n")
+            f.write(f"{host_key_id}||{key_type}||{key}||{hash_fingerprint(fingerprint)}\n")
         return True
     except Exception:
         return False
@@ -92,7 +102,7 @@ def remove_known_host(host, port):
         lines = []
         with open(known_hosts_path, 'r') as f:
             for line in f:
-                if not line.startswith(host_key_id + ':'):
+                if not line.startswith(host_key_id + '||'):
                     lines.append(line)
         
         with open(known_hosts_path, 'w') as f:
@@ -154,11 +164,8 @@ def list_known_hosts():
     result = []
     
     for host_key_id, info in known_hosts.items():
-        parts = host_key_id.split(':')
-        if len(parts) >= 2:
-            host = parts[0]
-            port = parts[1]
-            result.append((host, port, info['key_type'], info['fingerprint']))
+        host, port = get_host_key_id_parts(host_key_id)
+        result.append((host, port, info['key_type'], info['fingerprint']))
     
     return result
 

@@ -7,7 +7,19 @@ zgSFTP is a Python 3 SFTP client GUI application built with tkinter. It supports
 **Copyright**: zgSFTP (2026), Vishnu Shankar (2018-2019)  
 **Supported Platforms**: Linux, Windows 11, macOS
 
-## Running the Application
+### Running Tests
+**No formal test suite exists.** The project has no automated tests, linters, or type checkers configured.
+
+### Manual Testing Procedure
+1. Run the application: `python3 zgSFTP.py` (or `python zgSFTP.py` on Windows)
+2. Test SFTP connections to a test server using known credentials
+3. Verify file operations (upload, download, copy, move, delete, search)
+4. Test transfer cancellation functionality
+5. Test drag-and-drop file selection
+6. Verify host key management (first-time connection handling)
+7. Test window resizing and DPI handling (note: appears blurry with DPI scaling)
+
+### Running the Application
 
 ```bash
 # Linux/macOS
@@ -32,13 +44,8 @@ Required packages:
 
 **No formal test suite exists.** The project has no automated tests, linters, or type checkers configured.
 
-### Testing
-Since there are no formal tests, manual testing is required:
-
-1. Run the application: `python3 zgSFTP.py`
-2. Test SFTP connections to a test server
-3. Verify file operations (upload, download, copy, move, delete, search)
-4. Test transfer cancellation functionality
+### Test Commands
+Since there are no formal tests, manual testing is required using the manual testing procedure above.
 
 ### Build Commands
 The project does not use a build system. Run directly with Python 3.
@@ -47,6 +54,9 @@ The project does not use a build system. Run directly with Python 3.
 No linters or type checkers are configured. The codebase uses:
 - Python 3 (Python 3.14 compatible)
 - No type hints (maintains consistency with existing codebase)
+
+### Running a Single Test
+**Not applicable** - no formal test suite exists. See manual testing procedure above.
 
 ## Code Style Guidelines
 
@@ -174,10 +184,12 @@ os.chdir(dname)
 
 ### Main Components
 - `zgSFTP.py` - Main application window and GUI logic
-- `zgSFTP_Controller.py` - SFTP protocol implementation (paramiko)
+- `SFTP_controller.py` - SFTP protocol implementation (paramiko)
 - `zgSFTP_FileDialogs.py` - Custom dialogs (connect, search, properties, etc.)
 - `zgSFTP_ToolbarButton.py` / `zgSFTP_PaneButton.py` - Custom button widgets
-- `zgSFTP_DriveDetect.py` - Mount point detection
+- `zgSFTP_HostKeyMgmt.py` - Host key management dialog
+- `host_keys.py` - SSH host key storage and verification
+- `drive_detect.py` - Mount point detection
 
 ### Controller Pattern
 The `sftp_controller` class provides the SFTP interface:
@@ -187,11 +199,12 @@ The `sftp_controller` class provides the SFTP interface:
 - `create_dir()`, `delete_dir()`, `rename_dir()`
 - `search()`, `chmod()`
 
-### Progress Dialog Pattern
-File transfers use a `console_dialog` class that shows progress:
-- Created via `create_progress_window()` in main app
-- Progress updates via `progress(file_name, status)` method
-- Supports transfer cancellation with "Stop Transfer" button
+### Host Key Storage Pattern
+Host keys are stored in `~/.zgSFTP/known_hosts` with format:
+```
+host:port||key_type||base64_key||fingerprint_hash
+```
+Use `host_keys.get_host_key_id_parts()` to properly parse host:port IDs containing colons.
 
 ## Common Tasks
 
@@ -202,11 +215,17 @@ File transfers use a `console_dialog` class that shows progress:
 4. Use `ttk` widgets for consistent styling
 
 ### Adding a File Operation
-1. Implement in `zgSFTP_Controller`
+1. Implement in `SFTP_controller`
 2. Add GUI callback in `zgSFTP.py`
 3. Use threading for long-running operations
 4. Update status bar for user feedback
 5. Consider adding cancellation support
+
+### Adding Host Key Management
+1. Use `host_keys.get_host_key_id(host, port)` for unique host:port IDs
+2. Use `host_keys.get_host_key_id_parts()` to parse IDs with colons
+3. Store host keys with `||` delimiter (not `:`) to avoid breaking base64 keys
+4. Use `host_keys.save_known_host()`, `host_keys.load_known_hosts()`
 
 ### Icon Management
 - Icons stored in `Icons/` directory
@@ -217,3 +236,6 @@ File transfers use a `console_dialog` class that shows progress:
 ## Known Issues
 - Application appears blurry with DPI scaling enabled
 - Vibe coded AI slop bugs likely exist
+
+## Cursor/Copilot Rules
+No Cursor rules (`.cursor/rules/` or `.cursorrules`) or Copilot rules (`.github/copilot-instructions.md`) exist in this repository.

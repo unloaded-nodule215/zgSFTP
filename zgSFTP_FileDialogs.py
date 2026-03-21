@@ -1169,7 +1169,7 @@ class known_hosts_dialog:
         self.vbar.pack(side=RIGHT, fill=Y)
 
         columns = ('host', 'port', 'key_type', 'fingerprint')
-        self.host_treeview = ttk.Treeview(list_frame, columns=columns, show='headings', yscrollcommand=self.vbar.set)
+        self.host_treeview = ttk.Treeview(list_frame, columns=columns, show='headings', yscrollcommand=self.vbar.set, height=20)
         self.host_treeview.pack(fill=BOTH, expand=True)
         self.vbar.config(command=self.host_treeview.yview)
 
@@ -1181,6 +1181,9 @@ class known_hosts_dialog:
         self.host_treeview.column('port', width=80)
         self.host_treeview.column('key_type', width=100)
         self.host_treeview.column('fingerprint', width=250)
+
+        style = ttk.Style()
+        style.configure('Treeview', rowheight=25)
 
         self.host_treeview.bind('<<TreeviewSelect>>', self.on_host_select)
 

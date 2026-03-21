@@ -254,7 +254,7 @@ class HostKeyManager:
         self.vbar.pack(side=RIGHT, fill=Y)
 
         columns = ('name', 'type', 'fingerprint')
-        self.key_treeview = ttk.Treeview(list_frame, columns=columns, show='headings', yscrollcommand=self.vbar.set)
+        self.key_treeview = ttk.Treeview(list_frame, columns=columns, show='headings', yscrollcommand=self.vbar.set, height=20)
         self.key_treeview.pack(fill=BOTH, expand=True)
         self.vbar.config(command=self.key_treeview.yview)
 
@@ -264,6 +264,9 @@ class HostKeyManager:
         self.key_treeview.column('name', width=150)
         self.key_treeview.column('type', width=100)
         self.key_treeview.column('fingerprint', width=300)
+
+        style = ttk.Style()
+        style.configure('Treeview', rowheight=25)
 
         self.key_treeview.bind('<<TreeviewSelect>>', self.on_key_select)
 
