@@ -6,6 +6,8 @@
 import os
 from os.path import isfile, expanduser, join
 import paramiko
+import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
+import cryptography.hazmat.primitives.serialization as serialization
 from tkinter import *
 from tkinter import ttk
 from tkinter import PhotoImage
@@ -61,14 +63,43 @@ def generate_key_pair(name, passphrase=None):
     if isfile(private_key_path):
         return False, 'Key already exists'
     
-    key = paramiko.generate_key(key_type='ed25519')
+    # Generate key using cryptography
+    crypto_key = ed25519.Ed25519PrivateKey.generate()
     
+    # Serialize to OPENSSH format
+    if passphrase:
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from cryptography.hazmat.backends import default_backend
+        import hashlib
+        import os as _os
+        
+        # For simplicity, use PKCS8 with encryption
+        pem = crypto_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode())
+        )
+    else:
+        pem = crypto_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.OpenSSH,
+            serialization.NoEncryption()
+        )
+    
+    # Write private key
     with open(private_key_path, 'wb') as f:
-        key.write_private_key(f, password=passphrase.encode() if passphrase else None)
+        f.write(pem)
         os.chmod(private_key_path, 0o600)
     
+    # Load into paramiko to get public key
+    if passphrase:
+        paramiko_key = paramiko.Ed25519Key.from_private_key_file(private_key_path, password=passphrase.encode())
+    else:
+        paramiko_key = paramiko.Ed25519Key.from_private_key_file(private_key_path)
+    
+    # Write public key
     with open(public_key_path, 'w') as f:
-        f.write(f"ssh-ed25519 {key.get_base64()} zgSFTP\n")
+        f.write(f"ssh-ed25519 {paramiko_key.get_base64()} zgSFTP\n")
         os.chmod(public_key_path, 0o644)
     
     return True, 'Key generated successfully'
@@ -85,13 +116,29 @@ def import_key(name, private_key_path, passphrase=None):
         return False, 'Key already exists'
     
     try:
-        passphrase_bytes = passphrase.encode() if passphrase else None
-        key = paramiko.PKey.from_private_key_file(private_key_path, password=passphrase_bytes)
+        # Read the original key file
+        with open(private_key_path, 'rb') as f:
+            key_data = f.read()
         
+        # Try to load as Ed25519 key first
+        try:
+            if passphrase:
+                key = paramiko.Ed25519Key.from_private_key_file(private_key_path, password=passphrase.encode())
+            else:
+                key = paramiko.Ed25519Key.from_private_key_file(private_key_path)
+        except Exception:
+            # If that fails, try with the generic PKey
+            if passphrase:
+                key = paramiko.PKey.from_private_key_file(private_key_path, password=passphrase.encode())
+            else:
+                key = paramiko.PKey.from_private_key_file(private_key_path)
+        
+        # Write the key data directly (preserve original format)
         with open(dest_private_path, 'wb') as f:
-            key.write_private_key(f, password=passphrase_bytes)
+            f.write(key_data)
             os.chmod(dest_private_path, 0o600)
         
+        # Write public key
         with open(dest_public_path, 'w') as f:
             f.write(f"{key.get_name()} {key.get_base64()} zgSFTP\n")
             os.chmod(dest_public_path, 0o644)
@@ -124,7 +171,12 @@ def load_key(name):
         return None
     
     try:
-        return paramiko.PKey.from_private_key_file(private_key_path)
+        # Try Ed25519 first
+        try:
+            return paramiko.Ed25519Key.from_private_key_file(private_key_path)
+        except Exception:
+            # Fall back to generic PKey
+            return paramiko.PKey.from_private_key_file(private_key_path)
     except paramiko.PasswordRequiredException:
         return 'PASSWORD_REQUIRED'
     except Exception:
@@ -243,7 +295,11 @@ class HostKeyManager:
         keys = list_local_keys()
         for key_info in keys:
             try:
-                key = paramiko.PKey.from_private_key_file(key_info['private_path'])
+                # Try Ed25519 first
+                try:
+                    key = paramiko.Ed25519Key.from_private_key_file(key_info['private_path'])
+                except Exception:
+                    key = paramiko.PKey.from_private_key_file(key_info['private_path'])
                 key_type = key.get_name().upper()
                 fingerprint = key.get_fingerprint().hex()
             except paramiko.PasswordRequiredException:
