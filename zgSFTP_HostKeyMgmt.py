@@ -13,7 +13,7 @@ from tkinter import ttk
 from tkinter import PhotoImage
 from tkinter import messagebox
 from tkinter import filedialog
-import host_keys
+import zgSFTP_host_keys
 import zgSFTP_FileDialogs as Filedialogs
 
 ZGSFTP_DIR = os.path.join(expanduser('~'), '.zgSFTP')
@@ -413,10 +413,10 @@ class HostKeyManager:
             success, message = delete_key(key_name)
 
             if success:
-                known_hosts = host_keys.list_known_hosts()
+                known_hosts = zgSFTP_host_keys.list_known_hosts()
                 for host, port, key_type, fingerprint in known_hosts:
                     if key_name in host or key_name in port:
-                        host_keys.remove_known_host(host, port)
+                        zgSFTP_host_keys.remove_known_host(host, port)
 
                 messagebox.showinfo('Delete Key', message)
                 self.load_keys()

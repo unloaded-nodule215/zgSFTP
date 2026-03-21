@@ -19,12 +19,12 @@ from tkinter import ttk
 from tkinter import PhotoImage
 from tkinter import messagebox
 from tkinterdnd2 import DND_FILES, TkinterDnD
-from SFTP_controller import *
+from zgSFTP_SFTP_controller import *
 import zgSFTP_ToolbarButton as ToolbarButton
 import zgSFTP_FileDialogs as Filedialogs
-from transfer_queue import TransferQueue
+from zgSFTP_transfer_queue import TransferQueue
 import platform
-import host_keys
+import zgSFTP_host_keys as host_keys
 import zgSFTP_HostKeyMgmt as HostKeyMgmt
 if(platform.system() == 'Windows'):
     import ctypes

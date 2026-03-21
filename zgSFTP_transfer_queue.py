@@ -63,7 +63,7 @@ class TransferQueue:
         if queue_file is None:
             # Get the directory where the script is located
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            self.queue_file = os.path.join(script_dir, 'queue.ini')
+            self.queue_file = os.path.join(script_dir, 'zgSFTP_transfer_queue.ini')
         else:
             self.queue_file = queue_file
         self.lock = threading.Lock()

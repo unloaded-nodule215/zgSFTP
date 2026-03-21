@@ -21,7 +21,7 @@ if(platform.system() == 'Windows'):
     import win32api
     import win32con
 
-import drive_detect as mountpoints
+import zgSFTP_drive_detect as mountpoints
 
 
 
@@ -1151,7 +1151,7 @@ class known_hosts_dialog:
 
     def create_widgets(self):
         """Create the dialog widgets."""
-        import host_keys
+        import zgSFTP_host_keys as host_keys
 
         top_frame = ttk.Frame(self.window)
         top_frame.pack(fill=X, padx=5, pady=5)
@@ -1201,7 +1201,7 @@ class known_hosts_dialog:
 
     def load_known_hosts(self):
         """Load known hosts from file."""
-        import host_keys
+        import zgSFTP_host_keys as host_keys
 
         for item in self.host_treeview.get_children():
             self.host_treeview.delete(item)
@@ -1221,7 +1221,7 @@ class known_hosts_dialog:
 
     def remove_host(self):
         """Remove selected host."""
-        import host_keys
+        import zgSFTP_host_keys as host_keys
 
         selection = self.host_treeview.selection()
         if not selection:
@@ -1238,7 +1238,7 @@ class known_hosts_dialog:
 
     def clear_all_hosts(self):
         """Clear all known hosts."""
-        import host_keys
+        import zgSFTP_host_keys as host_keys
 
         result = messagebox.askyesno('Clear All', 'Are you sure you want to remove all known hosts?')
         if result:

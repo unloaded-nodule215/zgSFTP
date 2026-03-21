@@ -8,7 +8,7 @@ import paramiko
 import tempfile
 import secrets
 import threading
-import host_keys
+import zgSFTP_host_keys
 import base64
 
 class paramiko_sftp_client(paramiko.SFTPClient):
@@ -77,7 +77,7 @@ class sftp_controller:
         key_type = server_key.get_name()
         key_blob = base64.b64encode(server_key.asbytes()).decode()
         
-        is_known, key_matches, stored_fingerprint = host_keys.is_host_known(Host, Port, server_key)
+        is_known, key_matches, stored_fingerprint = zgSFTP_host_keys.is_host_known(Host, Port, server_key)
         
         if is_known and not key_matches:
             self.transport.close()
@@ -86,9 +86,9 @@ class sftp_controller:
         if not is_known and host_key_callback is not None:
             accepted = host_key_callback(Host, Port, key_type, fingerprint)
             if not accepted:
-                self.transport.close()
-                raise Exception('Host key not accepted by user')
-            host_keys.save_known_host(Host, Port, key_type, key_blob, fingerprint)
+                 self.transport.close()
+                 raise Exception('Host key not accepted by user')
+            zgSFTP_host_keys.save_known_host(Host, Port, key_type, key_blob, fingerprint)
         
         self.ftp = paramiko_sftp_client.from_transport(self.transport)
         self.ftp.go_to_home(Username)
