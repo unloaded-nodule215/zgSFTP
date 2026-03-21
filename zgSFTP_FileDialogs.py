@@ -1117,3 +1117,127 @@ class open_file_dialog:
 
     def destroy(self):
         self.open_file_dialog_window.destroy()
+
+
+class known_hosts_dialog:
+    """Dialog for managing known SSH hosts."""
+
+    def __init__(self, master, title, icon):
+        self.master = master
+        self.result = None
+
+        self.window = Toplevel(master)
+        self.window.resizable(True, False)
+        self.window.title(title)
+        self.window.minsize(width=600, height=400)
+
+        self.icon = icon
+
+        self.create_widgets()
+        self.load_known_hosts()
+
+        center_window(master, self.window)
+        self.window.transient(master)
+        self.window.focus_force()
+
+        max_attempts = 10
+        for _ in range(max_attempts):
+            try:
+                self.window.grab_set()
+                break
+            except Exception:
+                import time
+                time.sleep(0.1)
+
+    def create_widgets(self):
+        """Create the dialog widgets."""
+        import host_keys
+
+        top_frame = ttk.Frame(self.window)
+        top_frame.pack(fill=X, padx=5, pady=5)
+
+        ttk.Label(top_frame, image=self.icon).pack(side=LEFT, padx=3)
+        ttk.Label(top_frame, text='Known SSH Hosts').pack(side=LEFT, padx=5)
+
+        keys_frame = ttk.LabelFrame(self.window, text='Known Hosts')
+        keys_frame.pack(fill=BOTH, expand=True, padx=5, pady=5)
+
+        list_frame = ttk.Frame(keys_frame)
+        list_frame.pack(fill=BOTH, expand=True)
+
+        self.vbar = ttk.Scrollbar(list_frame, orient=VERTICAL)
+        self.vbar.pack(side=RIGHT, fill=Y)
+
+        columns = ('host', 'port', 'key_type', 'fingerprint')
+        self.host_treeview = ttk.Treeview(list_frame, columns=columns, show='headings', yscrollcommand=self.vbar.set)
+        self.host_treeview.pack(fill=BOTH, expand=True)
+        self.vbar.config(command=self.host_treeview.yview)
+
+        self.host_treeview.heading('host', text='Host')
+        self.host_treeview.heading('port', text='Port')
+        self.host_treeview.heading('key_type', text='Key Type')
+        self.host_treeview.heading('fingerprint', text='Fingerprint')
+        self.host_treeview.column('host', width=200)
+        self.host_treeview.column('port', width=80)
+        self.host_treeview.column('key_type', width=100)
+        self.host_treeview.column('fingerprint', width=250)
+
+        self.host_treeview.bind('<<TreeviewSelect>>', self.on_host_select)
+
+        button_frame = ttk.Frame(keys_frame)
+        button_frame.pack(fill=X, pady=5)
+
+        self.remove_button = ttk.Button(button_frame, text='Remove', command=self.remove_host, state=DISABLED)
+        self.remove_button.pack(side=LEFT, padx=3)
+
+        self.clear_all_button = ttk.Button(button_frame, text='Clear All', command=self.clear_all_hosts)
+        self.clear_all_button.pack(side=LEFT, padx=3)
+
+        self.close_button = ttk.Button(button_frame, text='Close', command=self.window.destroy)
+        self.close_button.pack(side=RIGHT, padx=3)
+
+    def load_known_hosts(self):
+        """Load known hosts from file."""
+        import host_keys
+
+        for item in self.host_treeview.get_children():
+            self.host_treeview.delete(item)
+
+        hosts = host_keys.list_known_hosts()
+        for host, port, key_type, fingerprint in hosts:
+            display_fingerprint = fingerprint[:16] + '...' if len(fingerprint) > 16 else fingerprint
+            self.host_treeview.insert('', END, values=(host, port, key_type, display_fingerprint))
+
+    def on_host_select(self, event):
+        """Handle host selection in treeview."""
+        selection = self.host_treeview.selection()
+        if selection:
+            self.remove_button.config(state=NORMAL)
+        else:
+            self.remove_button.config(state=DISABLED)
+
+    def remove_host(self):
+        """Remove selected host."""
+        import host_keys
+
+        selection = self.host_treeview.selection()
+        if not selection:
+            return
+
+        item = self.host_treeview.item(selection[0])
+        host = item['values'][0]
+        port = item['values'][1]
+
+        result = messagebox.askyesno('Remove Host', 'Are you sure you want to remove {}:{} from known hosts?'.format(host, port))
+        if result:
+            host_keys.remove_known_host(host, int(port))
+            self.load_known_hosts()
+
+    def clear_all_hosts(self):
+        """Clear all known hosts."""
+        import host_keys
+
+        result = messagebox.askyesno('Clear All', 'Are you sure you want to remove all known hosts?')
+        if result:
+            host_keys.clear_all_known_hosts()
+            self.load_known_hosts()

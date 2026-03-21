@@ -453,6 +453,7 @@ class app:
 
     def host_key_callback(self, host, port, key_type, fingerprint):
         dialog = HostKeyMgmt.host_key_dialog(self.master, 'New SSH Host', self.connect_icon, host, port, key_type, fingerprint)
+        self.master.wait_window(dialog.host_key_dialog_window)
         return dialog.result == True
 
     def connect_thread(self, ftpController, host, usrname, passwd, port):
@@ -479,10 +480,10 @@ class app:
         except Exception as e:
             thread_request_queue.put(lambda:self.unlock_status_bar())
             error_msg = str(e)
-            if 'Host key' in error_msg or 'Authentication failed' in error_msg:
+            if 'Host key' in error_msg or 'Authentication failed' in error_msg or 'SSH error' in error_msg or 'Connection error' in error_msg:
                 thread_request_queue.put(lambda:self.update_status_red(error_msg))
             else:
-                thread_request_queue.put(lambda:self.update_status_red('Unable to connect, please check what you have entered.'))
+                thread_request_queue.put(lambda:self.update_status_red('Connection Failure. Check your entries.'))
             thread_request_queue.put(lambda:self.lock_status_bar())
         thread_request_queue.put(lambda:self.hostname_entry.focus())
         thread_request_queue.put(lambda:self.master.focus())    
@@ -1661,7 +1662,7 @@ class app:
         else:
             self.pass_entry.config(state = NORMAL)
 
-    def known_hosts(self):
+    def known_hosts(self, event = None):
         self.known_hosts_window = Filedialogs.known_hosts_dialog(self.master, 'Known SSH Hosts', self.info_icon)
 
 
