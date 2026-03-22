@@ -1,70 +1,35 @@
 # zgSFTP - Agent Guidelines
 
 ## Project Overview
-zgSFTP is a Python 3 SFTP client GUI application built with tkinter. It supports file operations (upload, download, copy, move, search, delete) on Linux, Windows, and macOS.
+zgSFTP is a Python 3 SFTP client GUI application built with tkinter. Supports file operations (upload, download, copy, move, search, delete) on Linux, Windows, and macOS.
 
-**Version**: 0.1.3  
-**Copyright**: zgSFTP (2026), Vishnu Shankar (2018-2019)  
-**Supported Platforms**: Linux, Windows 11, macOS
+**Version**: 0.1.3
+**Copyright**: zgSFTP (2026), Vishnu Shankar (2018-2019)
+**Platforms**: Linux, Windows 11, macOS
 
-### Running Tests
-**No formal test suite exists.** The project has no automated tests, linters, or type checkers configured.
+## Build / Lint / Test Commands
+- **Build**: No build system; run directly with Python 3.
+- **Lint**: No linter configured. Use `flake8` if added.
+- **Test**: No test suite. Run manual tests (see below). Add pytest later.
 
-### Manual Testing Procedure
-1. Run the application: `python3 zgSFTP.py` (or `python zgSFTP.py` on Windows)
-2. Test SFTP connections to a test server using known credentials
-3. Verify file operations (upload, download, copy, move, delete, search)
-4. Test transfer cancellation functionality
-5. Test drag-and-drop file selection
-6. Verify host key management (first-time connection handling)
-7. Test window resizing and DPI handling (note: appears blurry with DPI scaling)
-
-### Running the Application
-
+### Running a Single Test (placeholder)
 ```bash
-# Linux/macOS
-python3 zgSFTP.py
-
-# Windows (after installing dependencies)
-python zgSFTP.py
+# If a test file `tests/test_sftp.py` is added:
+python -m pytest tests/test_sftp.py::TestSFTP::test_connect -v
 ```
 
-## Installing Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-Required packages:
-- `paramiko` - SFTP connections
-- `psutil` - Process and system utilities
-- `tkinterdnd2` - Drag and drop support
-
-## Build/Lint/Test Commands
-
-**No formal test suite exists.** The project has no automated tests, linters, or type checkers configured.
-
-### Test Commands
-Since there are no formal tests, manual testing is required using the manual testing procedure above.
-
-### Build Commands
-The project does not use a build system. Run directly with Python 3.
-
-### Lint/Type Check Commands
-No linters or type checkers are configured. The codebase uses:
-- Python 3 (Python 3.14 compatible)
-- No type hints (maintains consistency with existing codebase)
-
-### Running a Single Test
-**Not applicable** - no formal test suite exists. See manual testing procedure above.
+## Manual Testing Procedure
+1. Start app: `python3 zgSFTP.py`
+2. Connect to a test SFTP server.
+3. Perform file upload, download, copy, move, delete.
+4. Test transfer cancellation.
+5. Drag‑and‑drop file selection.
+6. Verify host key storage and warning.
+7. Resize windows; note DPI scaling blur.
 
 ## Code Style Guidelines
-
 ### Imports
-Order imports as follows:
-1. Standard library imports (alphabetically grouped)
-2. Third-party imports (alphabetically grouped)
-3. Local imports (relative to project root, alphabetically)
+Order: stdlib → third‑party → local. Alphabetical within groups.
 
 ```python
 import os
@@ -74,10 +39,7 @@ import queue
 import configparser
 from urllib.parse import unquote
 from tkinter import *
-from tkinter import font
-from tkinter import ttk
-from tkinter import PhotoImage
-from tkinter import messagebox
+from tkinter import font, ttk, PhotoImage, messagebox
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from zgSFTP_SFTP_controller import *
 import zgSFTP_ToolbarButton as ToolbarButton
@@ -86,156 +48,60 @@ import platform
 ```
 
 ### Formatting
-- **Indentation**: 4 spaces (no tabs)
-- **Line length**: Flexible, but prefer ~80-100 characters
-- **Blank lines**: Use to separate logical sections within functions
-- **Spacing**: Space around operators (`=`, `+`, `-`, `==`)
-
-```python
-# Good
-if self.hidden_files is True or line.split()[8][0] != '.':
-    files.append(line)
-
-# Method calls with spaces around operators in arguments
-master.minsize(width = 860, height = 560)
-```
+- 4 spaces indentation, no tabs.
+- Line length ~80‑100 chars; flexible.
+- Blank lines separate logical sections.
+- Space around operators (`=`, `+`, `-`, `==`).
 
 ### Naming Conventions
-- **Classes**: `snake_case` (e.g., `sftp_controller`, `app`, `console_dialog`)
-- **Methods/Functions**: `snake_case` (e.g., `connect_to`, `get_file_list`, `toggle_hidden_files`)
-- **Instance variables**: `snake_case` (e.g., `self.file_list`, `self.max_width`)
-- **Constants**: Not commonly used in this codebase
-- **Files**: `snake_case.py` - All Python files must start with `zgSFTP_` prefix (e.g., `zgSFTP_SFTP_controller.py`, `zgSFTP_FileDialogs.py`)
+- Classes: `snake_case` (e.g., `sftp_controller`)
+- Functions/methods: `snake_case` (e.g., `connect_to`)
+- Variables: `snake_case` (e.g., `self.file_list`)
+- Files: `zgSFTP_*.py`
+- Icons: `Icons/*.png`
 
-### Type Hints
-- **Not used** in this codebase
-- Do not add type hints to maintain consistency
+### Types
+- No type hints; keep consistency.
 
-### Error Handling (Python 3.14 Compatible)
-- Use `except Exception:` instead of bare `except:`
-- Use `==` for value comparisons, not `is`
-- Use `len(data)` for bytes length, not `sys.getsizeof(data)`
-- Use `messagebox` for user-facing errors in GUI context
-
-```python
-# Good (Python 3.14 compatible)
-def is_there(self, path):
-    try:
-        self.sftp.stat(path)
-        return True
-    except Exception:
-        return False
-
-# Good comparisons
-if self.hidden_files == True:
-    pass
-if line.split()[8][0] != '.':
-    pass
-```
+### Error Handling
+- `except Exception:` for broad catches.
+- Use `==` for value checks, not `is`.
+- Use `len(data)` for byte length.
+- GUI errors via `messagebox`.
 
 ### Comments
-- Use `#/!\` for important warnings in docstrings
-- Inline comments explain non-obvious logic
-- File headers include copyright notices
+- `#/!` for important warnings in docstrings.
+- Inline comments for non‑obvious logic.
+- Keep copyright header.
 
-```python
-#/!\ Although the comments and variable names say 'file_list', or 'items' it includes folders also
-```
-
-### GUI Patterns (tkinter)
-- Use `ttk` widgets for themed appearance
-- Store image references to prevent garbage collection:
-```python
-self.icon = PhotoImage(file='Icons/connect.png')
-```
-- Center dialogs using `center_window()` utility
-- Use lambda bindings for widget callbacks that need to ignore event args:
-```python
-self.entry.bind('<Return>', lambda e: callback())
-```
+### GUI Patterns
+- Prefer `ttk` widgets.
+- Keep image references (`self.icon = PhotoImage(...)`).
+- Center dialogs with `center_window()`.
+- Bind with lambda to ignore event: `widget.bind('<Return>', lambda e: callback())`.
 
 ### Threading
-- Use `threading.Thread` for network operations
-- Protect shared state with `threading.Lock()`:
-```python
-self.thread_lock = threading.Lock()
-```
-- Queue-based communication for thread-safe data passing
-- Use daemon threads for background operations
+- `threading.Thread` for network work.
+- Protect shared state with `threading.Lock()`.
+- Use `queue.Queue` for communication; daemon threads for background jobs.
 
-### Platform-Specific Code
-- Use `platform.system()` for conditional imports:
+### Platform Specific
 ```python
 if platform.system() == 'Windows':
-    import ctypes
-    import win32api
+    import ctypes, win32api
 ```
 
-### File Operations
-- Use `os.path` utilities for path manipulation
-- Change to script directory for relative paths:
+### File Ops
+- Use `os.path` for paths.
+- Change to script dir for relative paths:
 ```python
 abspath = os.path.abspath(__file__)
-dname = os.path.dirname(abspath)
-os.chdir(dname)
+os.chdir(os.path.dirname(abspath))
 ```
-
-## Architecture
-
-### Main Components
-- `zgSFTP.py` - Main application window and GUI logic
-- `zgSFTP_SFTP_controller.py` - SFTP protocol implementation (paramiko)
-- `zgSFTP_FileDialogs.py` - Custom dialogs (connect, search, properties, etc.)
-- `zgSFTP_ToolbarButton.py` / `zgSFTP_PaneButton.py` - Custom button widgets
-- `zgSFTP_HostKeyMgmt.py` - Host key management dialog
-- `zgSFTP_host_keys.py` - SSH host key storage and verification
-- `zgSFTP_drive_detect.py` - Mount point detection
-
-### Controller Pattern
-The `sftp_controller` class (in `zgSFTP_SFTP_controller.py`) provides the SFTP interface:
-- `connect_to(host, username, password, port)`
-- `get_file_list()`, `get_detailed_file_list()`
-- `upload_file()`, `download_file()`
-- `create_dir()`, `delete_dir()`, `rename_dir()`
-- `search()`, `chmod()`
-
-### Host Key Storage Pattern
-Host keys are stored in `~/.zgSFTP/known_hosts` with format:
-```
-host:port||key_type||base64_key||fingerprint_hash
-```
-Use `host_keys.get_host_key_id_parts()` to properly parse host:port IDs containing colons.
-
-## Common Tasks
-
-### Adding a New Dialog
-1. Create class in `zgSFTP_FileDialogs.py`
-2. Use `Toplevel()` for the window
-3. Center with `center_window(master, dialog)`
-4. Use `ttk` widgets for consistent styling
-
-### Adding a File Operation
-1. Implement in `SFTP_controller`
-2. Add GUI callback in `zgSFTP.py`
-3. Use threading for long-running operations
-4. Update status bar for user feedback
-5. Consider adding cancellation support
-
-### Adding Host Key Management
-1. Use `host_keys.get_host_key_id(host, port)` for unique host:port IDs
-2. Use `host_keys.get_host_key_id_parts()` to parse IDs with colons
-3. Store host keys with `||` delimiter (not `:`) to avoid breaking base64 keys
-4. Use `host_keys.save_known_host()`, `host_keys.load_known_hosts()`
-
-### Icon Management
-- Icons stored in `Icons/` directory
-- Use `.png` format with consistent naming
-- Load with `PhotoImage(file='Icons/name.png')`
-- Store references to prevent garbage collection
 
 ## Known Issues
-- Application appears blurry with DPI scaling enabled
-- Vibe coded AI slop bugs likely exist
+- DPI scaling results in blurry UI.
+- No formal test suite; bugs may exist.
 
-## Cursor/Copilot Rules
-No Cursor rules (`.cursor/rules/` or `.cursorrules`) or Copilot rules (`.github/copilot-instructions.md`) exist in this repository.
+## Cursor / Copilot Rules
+No `.cursor/rules/` or `.cursorrules` directory. No `.github/copilot-instructions.md`. No rules to load.

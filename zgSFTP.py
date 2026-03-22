@@ -1807,6 +1807,15 @@ class app:
                 self.queue_stats = self.transfer_queue.get_stats()
             else:
                 self.queue_stats = {'pending': 0, 'completed': 0, 'failed': 0}
+            
+            # Update queue display to reflect cleared queue
+            if self.console_window is not None and self.transfer_queue is not None:
+                self.console_window.update_queue_display()
+                self.console_window.set_queue_stats(
+                    self.queue_stats['pending'],
+                    self.queue_stats['completed'],
+                    self.queue_stats['failed']
+                )
         else:
             # Keep queue paused for resume
             self.queue_paused = True

@@ -684,9 +684,17 @@ class console_dialog:
             # Update label
             self.queue_status_label.config(text='Queue cleared')
             
-            # Actually clear queue.ini from disk (blank file)
+            # Actually clear queue.ini from disk
             if self.transfer_queue:
                 self.transfer_queue.clear_pending()
+                # Update queue display to reflect cleared queue
+                self.update_queue_display()
+                # Update stats display
+                self.set_queue_stats(
+                    self.queue_stats['pending'],
+                    self.queue_stats['completed'],
+                    self.queue_stats['failed']
+                )
 
     def close_message(self):
         if(self.closable == True):
