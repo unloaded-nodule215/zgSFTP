@@ -630,6 +630,11 @@ class console_dialog:
             # Get all queue items
             queue_items = self.transfer_queue.get_queue_items() if self.transfer_queue else []
             
+            # Filter out currently transferring file
+            if self.current_file:
+                current_basename = os.path.basename(self.current_file)
+                queue_items = [item for item in queue_items if os.path.basename(item['path']) != current_basename]
+            
             # Clear current display
             self.queue_text.config(state = NORMAL)
             self.queue_text.delete('1.0', END)
@@ -1057,10 +1062,11 @@ class open_file_dialog:
         self.canvas.yview_scroll(delta(event), 'units')
         
     def mouse_select(self, event):
-        #Check for directory mode
-        if(self.directory_mode == True and not isfile(self.file_list[self.current_file_index])):
-           self.change_dir(event)
-           return
+        #Check for directory mode - only if valid index
+        if(self.directory_mode == True and self.current_file_index >= 0 and self.current_file_index < len(self.file_list)):
+            if not isfile(self.file_list[self.current_file_index]):
+                self.change_dir(event)
+                return
         #Store start position for drag select
         self.start_x = self.x_cell_pos
         self.start_y = self.y_cell_pos

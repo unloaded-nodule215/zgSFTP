@@ -188,7 +188,7 @@ class TransferQueue:
             # Log error but don't fail transfer
             pass
             
-    def enqueue(self, path, file_type='file'):
+    def enqueue(self, path, file_type='file', remote_path=None):
         """Add a file/folder to the queue."""
         with self.lock:
             # Check queue size limit
@@ -199,9 +199,14 @@ class TransferQueue:
             if not self._validate_path(path):
                 return False
             
+            # If remote_path not provided, use path
+            if remote_path is None:
+                remote_path = path
+            
             item = {
                 'id': f'PendingFile_{len(self._queue_items)}',
                 'path': path,
+                'remote_path': remote_path,
                 'type': file_type,
                 'priority': 1
             }
@@ -213,7 +218,7 @@ class TransferQueue:
             self.save_to_file()
             return True
             
-    def enqueue_to_front(self, path, file_type='file'):
+    def enqueue_to_front(self, path, file_type='file', remote_path=None):
         """Add a file/folder to the front of the queue."""
         with self.lock:
             # Check queue size limit
@@ -224,9 +229,14 @@ class TransferQueue:
             if not self._validate_path(path):
                 return False
             
+            # If remote_path not provided, use path
+            if remote_path is None:
+                remote_path = path
+            
             item = {
                 'id': f'PendingFile_{len(self._queue_items)}',
                 'path': path,
+                'remote_path': remote_path,
                 'type': file_type,
                 'priority': 1
             }

@@ -940,6 +940,59 @@ class app:
     def upload_window(self):
         self.upload_dialog = Filedialogs.open_file_dialog(self.master, 'Choose file(s) or folder(s) to upload', self.upload_thread)
 
+    def expand_folder_to_files(self, path, is_upload, base_path=None):
+        """Recursively expand a folder into individual files.
+        Returns list of tuples: (local_path, remote_path, 'file')
+        """
+        files = []
+        if base_path is None:
+            base_path = path
+
+        if is_upload:
+            # For uploads, use local filesystem
+            # Get the parent of the base_path to calculate relative paths correctly
+            base_parent = os.path.dirname(os.path.normpath(base_path))
+            
+            if os.path.isdir(path):
+                for item in os.listdir(path):
+                    item_path = os.path.join(path, item)
+                    # Calculate relative path from parent of base_path for remote location
+                    rel_path = os.path.relpath(item_path, base_parent)
+                    if os.path.isfile(item_path):
+                        files.append((item_path, rel_path, 'file'))
+                    elif os.path.isdir(item_path):
+                        files.extend(self.expand_folder_to_files(item_path, True, base_path))
+            elif os.path.isfile(path):
+                rel_path = os.path.relpath(path, base_parent)
+                files.append((path, rel_path, 'file'))
+        else:
+            # For downloads, use remote server
+            try:
+                # Get the basename for navigation
+                nav_path = os.path.basename(path.rstrip('/'))
+                if not nav_path:
+                    nav_path = path
+                
+                details = self.ftpController.get_properties(nav_path)
+                if self.ftpController.is_dir(details):
+                    self.ftpController.ftp.cwd(nav_path)
+                    detailed_list = self.ftpController.get_detailed_file_list(True)
+                    file_list = self.ftpController.get_file_list(detailed_list)
+                    for item, item_details in zip(file_list, detailed_list):
+                        item_path = os.path.join(path, item)
+                        # For downloads, local path = remote path
+                        if self.ftpController.is_dir(item_details):
+                            files.extend(self.expand_folder_to_files(item_path, False, base_path))
+                        else:
+                            files.append((item_path, item_path, 'file'))
+                    self.ftpController.ftp.cwd('..')
+                else:
+                    files.append((path, path, 'file'))
+            except Exception:
+                pass
+
+        return files
+
     def prepare_queue(self, file_list, detailed_file_list, is_upload=True, selected_indices=None):
         """Prepare transfer queue from file list."""
         # Reset queue
@@ -949,7 +1002,7 @@ class app:
         # Clear any pending queue items
         self.transfer_queue.clear_pending()
         
-        # Track stats
+        # Track folders and files
         folders = []
         files = []
         
@@ -957,9 +1010,12 @@ class app:
         if selected_indices is not None:
             # Only process selected items
             for index in selected_indices:
-                if index < len(file_list) and index < len(detailed_file_list):
+                if index < len(file_list):
                     path = file_list[index]
-                    details = detailed_file_list[index]
+                    
+                    # Convert to absolute path for uploads
+                    if is_upload and not os.path.isabs(path):
+                        path = os.path.abspath(path)
                     
                     # Validate file exists
                     if is_upload:
@@ -977,14 +1033,24 @@ class app:
                             self.progress(path, 'File not found on server')
                             continue
                     
-                    # Detect type
-                    if self.ftpController.is_dir(details):
-                        folders.append((path, details))
+                    # Detect type - use local filesystem for uploads, remote for downloads
+                    if is_upload:
+                        if os.path.isdir(path):
+                            folders.append(path)
+                        else:
+                            files.append(path)
                     else:
-                        files.append((path, details))
+                        if self.ftpController.is_dir(detailed_file_list[index]):
+                            folders.append(path)
+                        else:
+                            files.append(path)
         else:
-            # Process all items (for uploads from file dialog)
-            for i, (path, details) in enumerate(zip(file_list, detailed_file_list)):
+            # Process all items
+            for i, path in enumerate(file_list):
+                # Convert to absolute path for uploads
+                if is_upload and not os.path.isabs(path):
+                    path = os.path.abspath(path)
+                
                 # Validate file exists
                 if is_upload:
                     # For uploads, check local filesystem
@@ -1001,30 +1067,44 @@ class app:
                         self.progress(path, 'File not found on server')
                         continue
                 
-                # Detect type
-                if self.ftpController.is_dir(details):
-                    folders.append((path, details))
+                # Detect type - use local filesystem for uploads, remote for downloads
+                if is_upload:
+                    if os.path.isdir(path):
+                        folders.append(path)
+                    else:
+                        files.append(path)
                 else:
-                    files.append((path, details))
+                    if self.ftpController.is_dir(detailed_file_list[i]):
+                        folders.append(path)
+                    else:
+                        files.append(path)
         
         # Sort: folders first, then alphabetically
-        folders.sort(key=lambda x: x[0])
-        files.sort(key=lambda x: x[0])
+        folders.sort()
+        files.sort()
         
-        # Add to queue (folders first, then files)
-        for path, details in folders:
-            if self.transfer_queue.enqueue(path, 'folder'):
-                if is_upload:
-                    self.progress(path, 'Queued for upload')
-                else:
-                    self.progress(path, 'Queued for download')
-                    
-        for path, details in files:
-            if self.transfer_queue.enqueue(path, 'file'):
-                if is_upload:
-                    self.progress(path, 'Queued for upload')
-                else:
-                    self.progress(path, 'Queued for download')
+        # Expand folders into individual files and add to queue
+        all_files = []
+        for path in folders:
+            expanded = self.expand_folder_to_files(path, is_upload)
+            all_files.extend(expanded)
+        
+        # Add standalone files
+        for path in files:
+            if is_upload:
+                # For uploads, remote path is just the filename
+                all_files.append((path, os.path.basename(path), 'file'))
+            else:
+                # For downloads, remote path is the same as local path
+                all_files.append((path, path, 'file'))
+        
+        # Sort all files alphabetically
+        all_files.sort(key=lambda x: x[0])
+        
+        # Add all files to queue (quietly, no progress messages)
+        for local_path, remote_path, file_type in all_files:
+            if self.transfer_queue.enqueue(local_path, file_type, remote_path):
+                pass  # Quietly add to queue
         
         # Update stats
         self.queue_stats = self.transfer_queue.get_stats()
@@ -1057,6 +1137,13 @@ class app:
         
         # Pass transfer_queue to console dialog for queue display
         self.console_window.set_transfer_queue(self.transfer_queue)
+        
+        # Update queue display with initial stats
+        self.console_window.set_queue_stats(
+            self.queue_stats['pending'],
+            self.queue_stats['completed'],
+            self.queue_stats['failed']
+        )
         
         self.transfer_stage = 'preparing'
         #start thread
@@ -1092,36 +1179,97 @@ class app:
             if not item:
                 break
                 
-            path = item['path']
+            local_path = item['path']
+            remote_path = item.get('remote_path', local_path)
             file_type = item['type']
             
             # Update status
-            thread_request_queue.put(lambda p=path: self.console_window.set_current_file(
-                p, file_type
+            thread_request_queue.put(lambda l=local_path: self.console_window.set_current_file(
+                l, file_type
             ))
             
             # Transfer file (with cancellation check)
             try:
-                if isfile(path):
-                    ftpController.upload_file(path, os.path.getsize(path), progress, replace)
-                else:
-                    ftpController.upload_dir(path, progress, replace)
+                # Save current directory
+                current_local_dir = os.getcwd()
+                current_remote_dir = ftpController.ftp.getcwd()
+                
+                # Handle local path with subdirectories
+                local_dir_path = os.path.dirname(local_path)
+                file_name = os.path.basename(local_path)
+                
+                # Change to file's directory locally if needed
+                if local_dir_path and local_dir_path != current_local_dir:
+                    os.chdir(local_dir_path)
+                
+                # Get file size (use file_name since we're now in the file's directory)
+                file_size = os.path.getsize(file_name)
+                
+                # Create remote directory structure if needed
+                remote_dir = os.path.dirname(remote_path)
+                if remote_dir:
+                    # Build full remote path by joining with current remote directory
+                    full_remote_dir = os.path.join(current_remote_dir, remote_dir)
+                    
+                    # Create directory structure on remote (recursive mkdir)
+                    try:
+                        # Split path and create each directory level
+                        parts = full_remote_dir.strip('/').split('/')
+                        path_so_far = ''
+                        for part in parts:
+                            path_so_far = os.path.join(path_so_far, part) if path_so_far else '/' + part
+                            try:
+                                ftpController.ftp.mkdir(path_so_far)
+                            except Exception:
+                                pass  # Directory may already exist
+                    except Exception:
+                        pass
+                    
+                    # Change to remote directory
+                    try:
+                        ftpController.ftp.cwd(full_remote_dir)
+                    except Exception:
+                        pass
+                
+                # Upload the file
+                ftpController.upload_file(file_name, file_size, progress, replace)
+                
+                # Restore remote directory
+                ftpController.ftp.cwd(current_remote_dir)
+                
+                # Restore local directory
+                os.chdir(current_local_dir)
                 
                 # Update stats on success
                 self.transfer_queue.increment_completed()
                 self.queue_stats = self.transfer_queue.get_stats()
+                thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                    self.queue_stats['pending'],
+                    self.queue_stats['completed'],
+                    self.queue_stats['failed']
+                ))
             except Exception as e:
                 # Check if cancelled
                 if 'Transfer cancelled' in str(e):
                     # Transfer was cancelled, add to failed queue and exit
-                    self.transfer_queue.enqueue_to_front(path, file_type)
+                    self.transfer_queue.enqueue_to_front(local_path, file_type, remote_path)
                     self.transfer_queue.save_to_file()
                     self.queue_stats = self.transfer_queue.get_stats()
+                    thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                        self.queue_stats['pending'],
+                        self.queue_stats['completed'],
+                        self.queue_stats['failed']
+                    ))
                     break
                 else:
                     # Other error, add to failed queue
-                    self.transfer_queue.add_failed_file(path, file_type)
+                    self.transfer_queue.add_failed_file(local_path, file_type)
                     self.queue_stats = self.transfer_queue.get_stats()
+                    thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                        self.queue_stats['pending'],
+                        self.queue_stats['completed'],
+                        self.queue_stats['failed']
+                    ))
                     continue
             
             # Check for failed files
@@ -1135,10 +1283,20 @@ class app:
                     if result:
                         self.transfer_queue.retry_failed_files()
                         self.queue_stats = self.transfer_queue.get_stats()
+                        thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                            self.queue_stats['pending'],
+                            self.queue_stats['completed'],
+                            self.queue_stats['failed']
+                        ))
                     else:
                         # User declined retry
                         self.failed_retry_attempted = True
                         self.queue_stats = self.transfer_queue.get_stats()
+                        thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                            self.queue_stats['pending'],
+                            self.queue_stats['completed'],
+                            self.queue_stats['failed']
+                        ))
                         # Continue but track failure
                 else:
                     # Final notification
@@ -1226,6 +1384,13 @@ class app:
         # Pass transfer_queue to console dialog for queue display
         self.console_window.set_transfer_queue(self.transfer_queue)
         
+        # Update queue display with initial stats
+        self.console_window.set_queue_stats(
+            self.queue_stats['pending'],
+            self.queue_stats['completed'],
+            self.queue_stats['failed']
+        )
+        
         self.transfer_stage = 'preparing'
         #Create new thread for downloading
         self.thread =  threading.Thread(target = self.download, args = (self.ftpController, self.file_list, self.detailed_file_list, self.selected_file_indices))
@@ -1260,41 +1425,84 @@ class app:
             if not item:
                 break
                 
-            path = item['path']
+            remote_path = item.get('remote_path', item['path'])
+            local_path = item['path']
             file_type = item['type']
             
             # Update status
-            thread_request_queue.put(lambda p=path: self.console_window.set_current_file(
-                p, file_type
+            thread_request_queue.put(lambda r=remote_path: self.console_window.set_current_file(
+                r, file_type
             ))
             
             # If a file download it to the specified directory
             try:
-                if file_type == 'file':
-                    # Get file properties from server
-                    file_details = ftpController.get_properties(path)
-                    file_size = int(file_details[3])
-                    ftpController.download_file(path, file_size, progress, replace)
-                else:
-                    # It's a directory, download it
-                    ftpController.download_dir(path, progress, replace)
+                # Handle path with subdirectories
+                remote_dir = os.path.dirname(remote_path)
+                local_dir = os.path.dirname(local_path)
+                file_name = os.path.basename(remote_path)
+                
+                # Save current remote and local directories
+                current_remote_dir = ftpController.ftp.getcwd()
+                current_local_dir = os.getcwd()
+                
+                # Create local directory structure if needed
+                if local_dir:
+                    try:
+                        os.makedirs(local_dir, exist_ok=True)
+                    except Exception:
+                        pass
+                
+                # Change to file's directory on server if needed
+                if remote_dir:
+                    # Build full remote path by joining with current remote directory
+                    full_remote_dir = os.path.join(current_remote_dir, remote_dir)
+                    try:
+                        ftpController.ftp.cwd(full_remote_dir)
+                    except Exception:
+                        pass
+                
+                # Get file properties from server
+                file_details = ftpController.get_properties(file_name)
+                file_size = int(file_details[3])
+                ftpController.download_file(file_name, file_size, progress, replace)
+                
+                # Restore current remote directory
+                ftpController.ftp.cwd(current_remote_dir)
+                
+                # Restore current local directory
+                os.chdir(current_local_dir)
                 
                 # Update stats on success
                 self.transfer_queue.increment_completed()
                 self.queue_stats = self.transfer_queue.get_stats()
+                thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                    self.queue_stats['pending'],
+                    self.queue_stats['completed'],
+                    self.queue_stats['failed']
+                ))
             except Exception as e:
                 # Check if cancelled
                 if 'Transfer cancelled' in str(e):
                     # Transfer was cancelled, add to failed queue and exit
-                    self.transfer_queue.enqueue_to_front(path, file_type)
+                    self.transfer_queue.enqueue_to_front(local_path, file_type, remote_path)
                     self.transfer_queue.save_to_file()
                     self.queue_stats = self.transfer_queue.get_stats()
+                    thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                        self.queue_stats['pending'],
+                        self.queue_stats['completed'],
+                        self.queue_stats['failed']
+                    ))
                     break
                 else:
                     # Other error
-                    self.progress(path, 'Failed to transfer')
-                    self.transfer_queue.add_failed_file(path, file_type)
+                    self.progress(remote_path, 'Failed to transfer')
+                    self.transfer_queue.add_failed_file(local_path, file_type)
                     self.queue_stats = self.transfer_queue.get_stats()
+                    thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                        self.queue_stats['pending'],
+                        self.queue_stats['completed'],
+                        self.queue_stats['failed']
+                    ))
                     continue
             
             # Check for failed files
@@ -1308,10 +1516,20 @@ class app:
                     if result:
                         self.transfer_queue.retry_failed_files()
                         self.queue_stats = self.transfer_queue.get_stats()
+                        thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                            self.queue_stats['pending'],
+                            self.queue_stats['completed'],
+                            self.queue_stats['failed']
+                        ))
                     else:
                         # User declined retry
                         self.failed_retry_attempted = True
                         self.queue_stats = self.transfer_queue.get_stats()
+                        thread_request_queue.put(lambda: self.console_window.set_queue_stats(
+                            self.queue_stats['pending'],
+                            self.queue_stats['completed'],
+                            self.queue_stats['failed']
+                        ))
                         # Continue but track failure
                 else:
                     # Final notification
@@ -1595,10 +1813,18 @@ class app:
             self.failed_retry_available = True
             self.failed_retry_attempted = False
             
-            # Add interrupted file back to top of queue
+             # Add interrupted file back to top of queue
             if file_name and self.transfer_queue is not None:
                 # transfer_type is already 'file' or 'folder'
-                self.transfer_queue.enqueue_to_front(file_name, transfer_type)
+                # For uploads, file_name is local path; for downloads, file_name is remote path
+                # Try to find the remote_path from the queue items
+                remote_path = file_name
+                for item in self.transfer_queue.get_queue_items():
+                    if item['path'] == file_name or item.get('remote_path') == file_name:
+                        remote_path = item.get('remote_path', file_name)
+                        break
+                
+                self.transfer_queue.enqueue_to_front(file_name, transfer_type, remote_path)
                 self.transfer_queue.save_to_file()
                 self.queue_stats = self.transfer_queue.get_stats()
             else:
